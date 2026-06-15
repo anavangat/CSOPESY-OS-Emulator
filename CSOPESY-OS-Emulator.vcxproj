@@ -131,10 +131,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FCFS_Scheduler.cpp" />
+    <ClCompile Include="Instruction.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AScheduler.h" />
+    <ClInclude Include="FCFS_Scheduler.h" />
+    <ClInclude Include="Instruction.h" />
+    <ClInclude Include="Process.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
