@@ -161,7 +161,7 @@ int main() {
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "scheduler-start") {
-			scheduler->startDummyProcessGeneration();
+			scheduler->schedulerLoop();
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "scheduler-stop") {

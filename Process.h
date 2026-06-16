@@ -37,6 +37,7 @@ public:
 private:
 	int pid;
 	std::string name;
+
 	ProcessState state;
 	int coreID; // Assigned core ID, -1 if not assigned
 	std::time_t arrivalTime;
@@ -45,6 +46,8 @@ private:
 	std::vector<std::shared_ptr<Instruction>> instructions;
 	int programCounter; // current instruction number being executed
 	int totalInstructions;
+
+
 
 	SymbolTable symbolTable;
 };

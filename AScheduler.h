@@ -6,23 +6,25 @@
 #include <memory>
 #include "Process.h"
 #include "ReadyQueue.h"
+#include "PrintInstruction.h"
 
 class AScheduler
 {
 public:
 	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec)
-		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec) { }
+		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec) {
+	}
 	virtual ~AScheduler() = default;
 
 	void start() {
-		generationEnabled = false;
+		generationEnabled = false; //SHould this be set to true?
 
 		// create thread for scheduler
-		schedulerThread = std::thread(schedulerLoop, this);
+		schedulerThread = std::thread(&AScheduler::schedulerLoop, this);
 
 		// create worker threads
 		for (int i = 0; i < numCpu; i++) {
-			workerThreads.emplace_back(workerLoop, this, i);
+			workerThreads.emplace_back(&AScheduler::workerLoop, this, i);
 		}
 	}
 
@@ -42,7 +44,8 @@ public:
 			schedulerThread.join();
 		}
 	}
-	
+
+	/* Sent to scheduler loop of FCFS
 	void startDummyProcessGeneration() {
 		int pid = 1;
 		while (generationEnabled) {
@@ -51,6 +54,10 @@ public:
 			readyQueue.push(process);
 		}
 	}
+
+	*/
+
+	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
 
 	void stopDummyProcessGeneration() {
 		generationEnabled = false;
@@ -83,10 +90,20 @@ protected:
 
 		// TODO: generate instructions and add to process
 
+		int instructionCount = rand() % (maxIns - minIns + 1) + minIns; // random number of instructions between minIns and maxIns
+
+		for (int i = 0; i < instructionCount; i++) {
+
+			std::string text = "Instruction " + std::to_string(i + 1) + " of " + name;
+
+			process->addInstruction(std::make_shared<PrintInstruction>(pid, text));
+		}
+
+
 		return process;
 	}
 
-	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
+	
 	
 	void workerLoop(int coreID) {
 		while (true) {
