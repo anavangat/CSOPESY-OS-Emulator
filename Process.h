@@ -18,7 +18,7 @@ public:
 
 	Process(int pid, const std::string& name, std::time_t arrivalTime) : 
 		pid(pid), name(name), state(READY), programCounter(0), coreID(-1), arrivalTime(arrivalTime),
-		totalInstructions(0), remainingInstructions(0) {}
+		totalInstructions(0) {}
 
 	int getPid() const;
 	std::string getName() const;
@@ -26,7 +26,6 @@ public:
 	void setState(ProcessState newState);
 	int getCoreID() const;
 	std::time_t getArrivalTime() const;
-	int getRemainingInstructions() const;
 	int getTotalInstructions() const;
 	SymbolTable& getSymbolTable();
 
@@ -43,10 +42,9 @@ private:
 	std::time_t arrivalTime;
 
 
-	int programCounter;
 	std::vector<std::shared_ptr<Instruction>> instructions;
+	int programCounter; // current instruction number being executed
 	int totalInstructions;
-	int remainingInstructions;
 
 	SymbolTable symbolTable;
 };

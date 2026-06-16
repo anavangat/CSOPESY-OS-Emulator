@@ -6,7 +6,11 @@
 #include <cstdint>
 #include <limits>
 #include <vector>
+#include <memory>
 #include "LogUtils.h"
+#include "Process.h"
+#include "AScheduler.h"
+#include "FCFS_Scheduler.h"
 
 void printHeader() {
 	std::cout << " ____  ____  ____  ____  _____ ____ ___  _" << std::endl;
@@ -19,12 +23,12 @@ void printHeader() {
 }
 
 struct Config {
-	uint32_t numCpu = 1;
+	uint32_t numCpu = 4;
 	std::string scheduler = "fcfs";
-	uint32_t quantumCycles = 1;
+	uint32_t quantumCycles = 5;
 	uint32_t batchProcessFreq = 1;
-	uint32_t minIns = 1;
-	uint32_t maxIns = 1;
+	uint32_t minIns = 1000;
+	uint32_t maxIns = 2000;
 	uint32_t delaysPerExec = 0;
 };
 
@@ -105,6 +109,8 @@ int main() {
 	Config cfg;
 	bool cfgLoaded = false;
 
+	std::unique_ptr<AScheduler> scheduler;
+
 	// Placeholder lists for processes. 
 	std::vector<Process> runningProcesses;
 	std::vector<Process> finishedProcesses;
@@ -116,6 +122,9 @@ int main() {
 		std::getline(std::cin, command);
 
 		if (command == "exit") {
+			if (scheduler) {
+				scheduler->stop();
+			}
 			break;
 		}
 
@@ -123,6 +132,14 @@ int main() {
 			if (command == "initialize") {
 				cfg = parseConfig("config.txt");
 				cfgLoaded = true;
+
+				if (cfg.scheduler == "fcfs") {
+					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec);
+				}
+				else if (cfg.scheduler == "rr") {
+					// scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cfg.quantumCycles);
+				}
+				scheduler->start();
 
 				std::cout << "Initialize done" << std::endl;
 				initialized = true;
@@ -144,11 +161,11 @@ int main() {
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "scheduler-start") {
-			std::cout << "Scheduler-start command recognized. Doing something....." << std::endl;
+			scheduler->startDummyProcessGeneration();
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "scheduler-stop") {
-			std::cout << "Scheduler-stop command recognized. Doing something....." << std::endl;
+			scheduler->stopDummyProcessGeneration();
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "report-util") {

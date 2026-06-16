@@ -136,6 +136,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PrintInstruction.cpp" />
     <ClCompile Include="Process.cpp" />
+    <ClCompile Include="ReadyQueue.cpp" />
     <ClCompile Include="SymbolTable.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -147,6 +148,7 @@
     <ClInclude Include="Instruction.h" />
     <ClInclude Include="PrintInstruction.h" />
     <ClInclude Include="Process.h" />
+    <ClInclude Include="ReadyQueue.h" />
     <ClInclude Include="SymbolTable.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
