@@ -5,6 +5,8 @@
 #include <sstream>
 #include <cstdint>
 #include <limits>
+#include <vector>
+#include "LogUtils.h"
 
 void printHeader() {
 	std::cout << " ____  ____  ____  ____  _____ ____ ___  _" << std::endl;
@@ -103,6 +105,10 @@ int main() {
 	Config cfg;
 	bool cfgLoaded = false;
 
+	// Placeholder lists for processes. 
+	std::vector<Process> runningProcesses;
+	std::vector<Process> finishedProcesses;
+
 	printHeader();
 
 	while (true) {
@@ -117,6 +123,7 @@ int main() {
 			if (command == "initialize") {
 				cfg = parseConfig("config.txt");
 				cfgLoaded = true;
+
 				std::cout << "Initialize done" << std::endl;
 				initialized = true;
 			}
@@ -145,7 +152,8 @@ int main() {
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "report-util") {
-			std::cout << "Report-util command recognized. Doing something....." << std::endl;
+			std::cout << "Generating execution report..." << std::endl;
+			LogUtils::dump_emulator_log(runningProcesses, finishedProcesses);
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "clear") {

@@ -17,7 +17,8 @@ public:
 	};
 
 	Process(int pid, const std::string& name, std::time_t arrivalTime) : 
-		pid(pid), name(name), state(READY), programCounter(0), coreID(-1), arrivalTime(arrivalTime) {}
+		pid(pid), name(name), state(READY), programCounter(0), coreID(-1), arrivalTime(arrivalTime),
+		totalInstructions(0), remainingInstructions(0) {}
 
 	int getPid() const;
 	std::string getName() const;
@@ -49,4 +50,3 @@ private:
 
 	SymbolTable symbolTable;
 };
-
