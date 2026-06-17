@@ -26,5 +26,4 @@ inline Instruction::Instruction(int pid, InstructionType type) : pid(pid), type(
 inline void Instruction::execute()
 {
 	// Base implementation can be empty or contain common logic for all instructions
-	_sleep(0); // TODO: change this to delays-per-exec from config
 }
