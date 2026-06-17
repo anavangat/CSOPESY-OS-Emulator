@@ -11,5 +11,5 @@ void PrintInstruction::execute()
 {
 	Instruction::execute(); // Call base class execute if needed (not implemented here, but can be used for logging or other purposes)
 
-	std::cout << "Process " << pid << ": " << toPrint << std::endl;
+	//std::cout << "Process " << pid << ": " << toPrint << std::endl;
 }

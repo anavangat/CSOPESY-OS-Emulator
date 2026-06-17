@@ -19,8 +19,6 @@ public:
 	virtual ~AScheduler() = default;
 
 	void start() {
-		// generationEnabled = false; // bool flag to control dummy process generation, initially set to false
-
 		// create thread for scheduler
 		schedulerThread = std::thread(&AScheduler::schedulerLoop, this);
 
@@ -100,6 +98,44 @@ protected:
 	// list of all processes for screen -ls and report-util
 	std::vector<std::shared_ptr<Process>> allProcesses;
 
+	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
+	
+	virtual void workerLoop(int coreID) {
+		while (true) {
+			auto process = readyQueue.pop();
+
+			if (process == nullptr) break; // stop signal
+
+			process->setState(Process::RUNNING);
+			
+			while (!process->isFinished()) {
+				process->executeCurrentInstruction();
+				process->moveToNextInstruction();
+				std::this_thread::sleep_for(std::chrono::milliseconds(delaysPerExec)); // apply delay per instruction execution
+			}
+
+			process->setState(Process::FINISHED);
+		}
+	}
+
+	void dummyProcessGenerationLoop() {
+		while (running) {
+			if (generationEnabled) {
+				auto process = createProcess(pid++);
+				allProcesses.push_back(process);
+
+				std::this_thread::sleep_for(
+					std::chrono::seconds(batchProcessFreq)
+				);
+			}
+			else {
+				std::this_thread::sleep_for(
+					std::chrono::milliseconds(100)
+				);
+			}
+		}
+	}
+
 	std::shared_ptr<Process> createProcess(int pid) {
 		std::string n = std::to_string(pid);
 		std::string name = "Process" + n;
@@ -121,44 +157,4 @@ protected:
 	}
 
 
-	
-	void workerLoop(int coreID) {
-		while (true) {
-			auto process = readyQueue.pop();
-
-			if (process == nullptr) break; // stop signal
-
-			process->setState(Process::RUNNING);
-			
-			while (!process->isFinished()) {
-				process->executeCurrentInstruction();
-				process->moveToNextInstruction();
-				std::this_thread::sleep_for(std::chrono::milliseconds(delaysPerExec)); // apply delay per instruction execution
-			}
-
-			process->setState(Process::FINISHED);
-		}
-	}
-	
-	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
-
-
-
-	void dummyProcessGenerationLoop() {
-		while (running) {
-			if (generationEnabled) {
-				auto process = createProcess(pid++);
-				allProcesses.push_back(process);
-
-				std::this_thread::sleep_for(
-					std::chrono::seconds(batchProcessFreq)
-				);
-			}
-			else {
-				std::this_thread::sleep_for(
-					std::chrono::milliseconds(100)
-				);
-			}
-		}
-	}
 };

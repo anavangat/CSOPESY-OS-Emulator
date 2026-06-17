@@ -1,13 +1,16 @@
 CSOPESY Emulator Execution Report
-Generated on: (06/17/2026 06:01:02PM)
+Generated on: (06/17/2026 08:18:11PM)
 ------------------------------------------------------------
 Process Name        ID        Instructions   Status
 ------------------------------------------------------------
-Process1            1         0/1041         Ready
-Process2            2         0/1449         Ready
-Process3            3         0/1328         Ready
-Process4            4         0/1474         Ready
-Process5            5         0/1150         Ready
-Process6            6         0/1709         Ready
-Process7            7         0/1467         Ready
+Process1            1         100/100        Finished
+Process2            2         100/100        Finished
+Process3            3         100/100        Finished
+Process4            4         100/100        Finished
+Process5            5         100/100        Finished
+Process6            6         100/100        Finished
+Process7            7         100/100        Finished
+Process8            8         100/100        Finished
+Process9            9         100/100        Finished
+Process10           10        100/100        Finished
 ------------------------------------------------------------
