@@ -24,6 +24,10 @@ std::time_t Process::getArrivalTime() const {
 	return arrivalTime;
 }
 
+int Process::getRemainingInstructions() const {
+	return totalInstructions - programCounter;
+}
+
 int Process::getTotalInstructions() const {
 	return totalInstructions;
 }

@@ -27,6 +27,7 @@ public:
 	int getCoreID() const;
 	std::time_t getArrivalTime() const;
 	int getTotalInstructions() const;
+	int getRemainingInstructions() const;
 	SymbolTable& getSymbolTable();
 
 	void addInstruction(const std::shared_ptr<Instruction>& instruction);

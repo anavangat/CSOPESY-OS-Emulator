@@ -138,6 +138,7 @@
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="ReadyQueue.cpp" />
     <ClCompile Include="SymbolTable.cpp" />
+    <ClCompile Include="LogUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt" />
@@ -150,6 +151,7 @@
     <ClInclude Include="Process.h" />
     <ClInclude Include="ReadyQueue.h" />
     <ClInclude Include="SymbolTable.h" />
+    <ClInclude Include="LogUtils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
