@@ -17,3 +17,8 @@ std::shared_ptr<Process> ReadyQueue::pop() {
 	queue.pop();
 	return process;
 }
+
+bool ReadyQueue::isEmpty() {
+	std::lock_guard<std::mutex> lock(mutex); //mutex is locked for the duration of this block, ensuring thread safety when checking if the queue is empty. // basically it allows one thread to access the queue at a time //lock_guard will lock the whole block and automatically release the lock when the block is exited, even if an exception occurs, preventing deadlocks and ensuring proper synchronization between threads
+	return queue.empty();
+}

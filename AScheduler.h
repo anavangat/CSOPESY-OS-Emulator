@@ -4,6 +4,8 @@
 #include <thread>
 #include <string>
 #include <memory>
+#include <cstdlib>
+#include <iostream>
 #include "Process.h"
 #include "ReadyQueue.h"
 #include "PrintInstruction.h"
@@ -17,7 +19,7 @@ public:
 	virtual ~AScheduler() = default;
 
 	void start() {
-		generationEnabled = false; //SHould this be set to true?
+		// generationEnabled = false; // bool flag to control dummy process generation, initially set to false
 
 		// create thread for scheduler
 		schedulerThread = std::thread(&AScheduler::schedulerLoop, this);
@@ -26,9 +28,12 @@ public:
 		for (int i = 0; i < numCpu; i++) {
 			workerThreads.emplace_back(&AScheduler::workerLoop, this, i);
 		}
+
+		dummyProcessGeneratorThread = std::thread(&AScheduler::dummyProcessGenerationLoop, this);
 	}
 
 	void stop() {
+		running = false;
 		generationEnabled = false;
 
 		for (int i = 0; i < numCpu; i++) {
@@ -43,25 +48,32 @@ public:
 		if (schedulerThread.joinable()) {
 			schedulerThread.join();
 		}
-	}
 
-	/* Sent to scheduler loop of FCFS
-	void startDummyProcessGeneration() {
-		int pid = 1;
-		while (generationEnabled) {
-			auto process = createProcess(pid++);
-			allProcesses.push_back(process);
-			readyQueue.push(process);
+		if (dummyProcessGeneratorThread.joinable()) {
+			dummyProcessGeneratorThread.join();
 		}
 	}
 
-	*/
-
-	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
+	void startDummyProcessGeneration() {
+		std::cout << "started dummy process generation:" << std::endl;
+		generationEnabled = true;
+	}
 
 	void stopDummyProcessGeneration() {
+		std::cout << "stopped dummy process generation:" << std::endl;
 		generationEnabled = false;
 	}
+
+	std::vector<std::shared_ptr<Process>> getProcessesByState(Process::ProcessState state) const {
+		std::vector<std::shared_ptr<Process>> result;
+		for (const auto& process : allProcesses) {
+			if (process->getState() == state) {
+				result.push_back(process);
+			}
+		}
+		return result;
+	}
+
 
 protected:
 	// config vars
@@ -74,8 +86,14 @@ protected:
 	std::thread schedulerThread; // thread for scheduler
 	ReadyQueue readyQueue; // one ready queue for the scheduler
 
+	// flag for running the scheduler and worker threads
+	std::atomic<bool> running{ true };
+
 	//  flag for generating processes
 	std::atomic<bool> generationEnabled{ false };
+	int pid = 1; // PID counter for generating unique PIDs for dummy processes
+
+	std::thread dummyProcessGeneratorThread; // thread for generating dummy processes
 
 	std::vector<std::thread> workerThreads; // create numCpu threads
 
@@ -88,8 +106,7 @@ protected:
 
 		auto process = std::make_shared<Process>(pid, name, std::time(nullptr));
 
-		// TODO: generate instructions and add to process
-
+		// generate instructions and add to process
 		int instructionCount = rand() % (maxIns - minIns + 1) + minIns; // random number of instructions between minIns and maxIns
 
 		for (int i = 0; i < instructionCount; i++) {
@@ -103,7 +120,7 @@ protected:
 		return process;
 	}
 
-	
+
 	
 	void workerLoop(int coreID) {
 		while (true) {
@@ -120,6 +137,28 @@ protected:
 			}
 
 			process->setState(Process::FINISHED);
+		}
+	}
+	
+	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
+
+
+
+	void dummyProcessGenerationLoop() {
+		while (running) {
+			if (generationEnabled) {
+				auto process = createProcess(pid++);
+				allProcesses.push_back(process);
+
+				std::this_thread::sleep_for(
+					std::chrono::seconds(batchProcessFreq)
+				);
+			}
+			else {
+				std::this_thread::sleep_for(
+					std::chrono::milliseconds(100)
+				);
+			}
 		}
 	}
 };

@@ -38,7 +38,7 @@ void LogUtils::print_command(const Process& process, int core_id) {
 #endif
 }
 
-void LogUtils::dump_emulator_log(const std::vector<Process>& running, const std::vector<Process>& finished) {
+void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running, const std::vector<std::shared_ptr<Process>>& finished) {
     std::ofstream logFile("csopesy-log.txt");
     if (!logFile.is_open()) {
         std::cerr << "Error: Could not create csopesy-log.txt" << std::endl;
@@ -71,15 +71,15 @@ void LogUtils::printTableHeaders(std::ostream& os) {
        << "Status" << std::endl;
 }
 
-void LogUtils::formatProcessRow(std::ostream& os, const Process& p) {
-    int total = p.getTotalInstructions();
-    int remaining = p.getRemainingInstructions();
+void LogUtils::formatProcessRow(std::ostream& os, const std::shared_ptr<Process> p) {
+    int total = p->getTotalInstructions();
+    int remaining = p->getRemainingInstructions();
     int executed = total - remaining;
     
     std::string insCount = std::to_string(executed) + "/" + std::to_string(total);
     
     std::string statusStr;
-    switch (p.getState()) {
+    switch (p->getState()) {
         case Process::READY:    statusStr = "Ready"; break;
         case Process::RUNNING:  statusStr = "Running"; break;
         case Process::WAITING:  statusStr = "Waiting"; break;
@@ -87,8 +87,8 @@ void LogUtils::formatProcessRow(std::ostream& os, const Process& p) {
         default:                statusStr = "Unknown"; break;
     }
 
-    os << std::left << std::setw(20) << p.getName()
-       << std::setw(10) << p.getPid() 
+    os << std::left << std::setw(20) << p->getName()
+       << std::setw(10) << p->getPid()
        << std::setw(15) << insCount 
        << statusStr << std::endl;
 }

@@ -9,6 +9,7 @@ class ReadyQueue
 public:
 	void push(std::shared_ptr<Process> process);
 	std::shared_ptr<Process> pop();
+	bool isEmpty();
 
 private:
 	std::queue<std::shared_ptr<Process>> queue;

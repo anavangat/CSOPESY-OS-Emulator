@@ -111,10 +111,6 @@ int main() {
 
 	std::unique_ptr<AScheduler> scheduler;
 
-	// Placeholder lists for processes. 
-	std::vector<Process> runningProcesses;
-	std::vector<Process> finishedProcesses;
-
 	printHeader();
 
 	while (true) {
@@ -129,7 +125,7 @@ int main() {
 		}
 
 		if (!initialized) {
-			if (command == "initialize") {
+			if (command == "init") {
 				cfg = parseConfig("config.txt");
 				cfgLoaded = true;
 
@@ -151,8 +147,8 @@ int main() {
 			continue;
 		}
 
-		if (command == "initialize") {
-			std::cout << "System is already initialized" << std::endl;
+		if (command == "init") {
+			std::cout << "System is already initialized" << std::endl; 
 			std::cout << "---------------------------------------------\n" << std::endl;
 			initialized = true;
 		}
@@ -161,7 +157,7 @@ int main() {
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "scheduler-start") {
-			scheduler->schedulerLoop();
+			scheduler->startDummyProcessGeneration();
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "scheduler-stop") {
@@ -170,6 +166,8 @@ int main() {
 		}
 		else if (command == "report-util") {
 			std::cout << "Generating execution report..." << std::endl;
+			std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
+			std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
 			LogUtils::dump_emulator_log(runningProcesses, finishedProcesses);
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <ostream>
+#include <memory>
 #include "Process.h"
 
 // Toggle this to 0 to disable per-process .txt file creation for performance testing
@@ -18,10 +19,10 @@ public:
 
     //Creates csopesy-log.txt with a table of all processes.
   
-    static void dump_emulator_log(const std::vector<Process>& running, const std::vector<Process>& finished);
+    static void dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running, const std::vector<std::shared_ptr<Process>>& finished);
 
     //Shared Formatter
-    static void formatProcessRow(std::ostream& os, const Process& p);
+    static void formatProcessRow(std::ostream& os, const std::shared_ptr<Process> p);
     static void printTableHeaders(std::ostream& os);
 };
 
