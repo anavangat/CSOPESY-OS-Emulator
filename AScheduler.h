@@ -13,8 +13,8 @@
 class AScheduler
 {
 public:
-	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec)
-		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec) {
+	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec, std::atomic<int>& cpuTick)
+		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick) {
 	}
 	virtual ~AScheduler() = default;
 
@@ -31,6 +31,10 @@ public:
 	}
 
 	void stop() {
+		if (generationEnabled) {
+			stopDummyProcessGeneration();
+		}
+
 		running = false;
 		generationEnabled = false;
 
@@ -74,6 +78,8 @@ public:
 
 
 protected:
+	std::atomic<int>& cpuTick;
+
 	// config vars
 	int numCpu;
 	int batchProcessFreq;
@@ -103,35 +109,30 @@ protected:
 	virtual void workerLoop(int coreID) {
 		while (true) {
 			auto process = readyQueue.pop();
-
 			if (process == nullptr) break; // stop signal
 
 			process->setState(Process::RUNNING);
-			
 			while (!process->isFinished()) {
 				process->executeCurrentInstruction();
 				process->moveToNextInstruction();
-				std::this_thread::sleep_for(std::chrono::milliseconds(delaysPerExec)); // apply delay per instruction execution
-			}
 
+				int waitStartTick = cpuTick.load();
+				while (cpuTick.load() - waitStartTick < delaysPerExec) {
+					 // wait for delaysPerExec ticks
+				}
+			}
 			process->setState(Process::FINISHED);
 		}
 	}
 
 	void dummyProcessGenerationLoop() {
+		int lastTick = cpuTick.load();
 		while (running) {
-			if (generationEnabled) {
+			if (generationEnabled && 
+				cpuTick.load() - lastTick >= batchProcessFreq) {
 				auto process = createProcess(pid++);
 				allProcesses.push_back(process);
-
-				std::this_thread::sleep_for(
-					std::chrono::seconds(batchProcessFreq)
-				);
-			}
-			else {
-				std::this_thread::sleep_for(
-					std::chrono::milliseconds(100)
-				);
+				lastTick = cpuTick.load();
 			}
 		}
 	}

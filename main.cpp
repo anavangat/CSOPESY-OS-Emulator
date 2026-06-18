@@ -7,6 +7,8 @@
 #include <limits>
 #include <vector>
 #include <memory>
+#include <atomic>
+#include <thread>
 #include "LogUtils.h"
 #include "Process.h"
 #include "AScheduler.h"
@@ -109,6 +111,13 @@ int main() {
 	Config cfg;
 	bool cfgLoaded = false;
 
+	std::atomic<int> cpuTick{ 0 };
+	std::thread cpuTickThread([&cpuTick]() {
+		while (true) {
+			cpuTick++;
+		}
+	});
+
 	std::unique_ptr<AScheduler> scheduler;
 
 	printHeader();
@@ -121,6 +130,9 @@ int main() {
 			if (scheduler) {
 				scheduler->stop();
 			}
+			if (cpuTickThread.joinable()) {
+				cpuTickThread.detach();
+			}
 			break;
 		}
 
@@ -130,7 +142,7 @@ int main() {
 				cfgLoaded = true;
 
 				if (cfg.scheduler == "fcfs") {
-					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec);
+					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick);
 				}
 				else if (cfg.scheduler == "rr") {
 					// scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cfg.quantumCycles);
