@@ -9,6 +9,7 @@
 #include "Process.h"
 #include "ReadyQueue.h"
 #include "PrintInstruction.h"
+#include "LogUtils.h"
 
 class AScheduler
 {
@@ -112,8 +113,10 @@ protected:
 			if (process == nullptr) break; // stop signal
 
 			process->setState(Process::RUNNING);
+			process->setCoreID(coreID);
 			while (!process->isFinished()) {
 				process->executeCurrentInstruction();
+				LogUtils::print_command(*process, coreID);
 				process->moveToNextInstruction();
 
 				int waitStartTick = cpuTick.load();

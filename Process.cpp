@@ -65,3 +65,7 @@ void Process::moveToNextInstruction() {
 bool Process::isFinished() const {
 	return programCounter >= static_cast<int>(instructions.size());
 }
+
+void Process::setCoreID(int core) {
+    this->coreID = core;
+}

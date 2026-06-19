@@ -5,6 +5,7 @@
 #include <ctime>
 #include <mutex>
 #include <chrono>
+#include <filesystem>
 
 // Global mutex to prevent file write collisions from multiple CPU threads
 std::mutex logFileMutex;
@@ -28,8 +29,10 @@ std::string getCurrentTimestamp() {
 void LogUtils::print_command(const Process& process, int core_id) {
 #if ENABLE_PROCESS_LOGGING
     std::lock_guard<std::mutex> lock(logFileMutex); // Thread safety
+
+    std::filesystem::create_directories("logs");
     
-    std::ofstream outFile(process.getName() + ".txt", std::ios::app);
+    std::ofstream outFile("logs/" + process.getName() + ".txt", std::ios::app);
     if (outFile.is_open()) {
         outFile << getCurrentTimestamp() << " Core:" << core_id 
                 << " \"Hello world from " << process.getName() << "!\"" << std::endl;
@@ -47,10 +50,10 @@ void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& re
 
     logFile << "CSOPESY Emulator Execution Report" << std::endl;
     logFile << "Generated on: " << getCurrentTimestamp() << std::endl;
-    logFile << std::string(60, '-') << std::endl;
+    logFile << std::string(70, '-') << std::endl;
 
     printTableHeaders(logFile);
-    logFile << std::string(60, '-') << std::endl;
+    logFile << std::string(70, '-') << std::endl;
 
     for (const auto& p : ready) {
         formatProcessRow(logFile, p);
@@ -62,7 +65,7 @@ void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& re
         formatProcessRow(logFile, p);
     }
 
-    logFile << std::string(60, '-') << std::endl;
+    logFile << std::string(70, '-') << std::endl;
     logFile.close();
     std::cout << "Report generated: csopesy-log.txt" << std::endl;
 }
@@ -71,7 +74,8 @@ void LogUtils::printTableHeaders(std::ostream& os) {
     os << std::left << std::setw(20) << "Process Name" 
        << std::setw(10) << "ID" 
        << std::setw(15) << "Instructions" 
-       << "Status" << std::endl;
+       << std::setw(15) << "Status"
+       << "Core" << std::endl;
 }
 
 void LogUtils::formatProcessRow(std::ostream& os, const std::shared_ptr<Process> p) {
@@ -92,12 +96,15 @@ void LogUtils::formatProcessRow(std::ostream& os, const std::shared_ptr<Process>
 
     std::string coreStr = "N/A";
     if (p->getState() == Process::RUNNING || p->getState() == Process::FINISHED) {
-        // Fixed: Changed from getCoreId() to getCoreID() to match your Process.h exactly
-        coreStr = std::to_string(p->getCoreID()); 
+        int core = p->getCoreID();
+        if (core != -1){
+            coreStr = std::to_string(core);
+        }
     }
 
     os << std::left << std::setw(20) << p->getName()
        << std::setw(10) << p->getPid()
        << std::setw(15) << insCount 
-       << statusStr << std::endl;
+       << std::setw(15) << statusStr
+       << coreStr << std::endl;
 }

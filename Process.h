@@ -34,13 +34,14 @@ public:
 	void executeCurrentInstruction();
 	void moveToNextInstruction();
 	bool isFinished() const;
+	int coreID; // Assigned core ID, -1 if not assigned
+	void setCoreID(int core);
 
 private:
 	int pid;
 	std::string name;
 
 	ProcessState state;
-	int coreID; // Assigned core ID, -1 if not assigned
 	std::time_t arrivalTime;
 
 
