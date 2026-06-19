@@ -43,8 +43,7 @@ private:
 	std::string name;
 
 	ProcessState state;
-	std::atomic<ProcessState> state;
-	int coreID; // Assigned core ID, -1 if not assigned
+	//std::atomic<ProcessState> state;
 	std::time_t arrivalTime;
 
 
