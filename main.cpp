@@ -9,6 +9,7 @@
 #include <memory>
 #include <atomic>
 #include <thread>
+#include <chrono>
 #include "LogUtils.h"
 #include "Process.h"
 #include "AScheduler.h"
@@ -115,6 +116,7 @@ int main() {
 	std::thread cpuTickThread([&cpuTick]() {
 		while (true) {
 			cpuTick++;
+			// std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 1 tick = 1ms
 		}
 	});
 

@@ -5,6 +5,7 @@
 #include <ctime>
 #include <mutex>
 #include <chrono>
+#include <string>
 #include <filesystem>
 
 // Global mutex to prevent file write collisions from multiple CPU threads

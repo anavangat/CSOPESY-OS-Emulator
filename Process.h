@@ -3,6 +3,7 @@
 #include <vector>
 #include <ctime>
 #include <memory>
+#include <atomic>
 #include "Instruction.h"
 #include "SymbolTable.h"
 
@@ -42,6 +43,8 @@ private:
 	std::string name;
 
 	ProcessState state;
+	std::atomic<ProcessState> state;
+	int coreID; // Assigned core ID, -1 if not assigned
 	std::time_t arrivalTime;
 
 

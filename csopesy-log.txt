@@ -1,4 +1,5 @@
 CSOPESY Emulator Execution Report
+<<<<<<< HEAD
 Generated on: (06/19/2026 08:26:54PM)
 ----------------------------------------------------------------------
 Process Name        ID        Instructions   Status         Core
@@ -3006,3 +3007,129 @@ Process80           80        100/100        Finished       0
 Process82           82        100/100        Finished       3
 Process84           84        100/100        Finished       3
 ----------------------------------------------------------------------
+=======
+Generated on: (06/19/2026 07:19:44PM)
+------------------------------------------------------------
+Process Name        ID        Instructions   Status
+------------------------------------------------------------
+Process5            5         0/100          Ready
+Process6            6         0/100          Ready
+Process7            7         0/100          Ready
+Process8            8         0/100          Ready
+Process9            9         0/100          Ready
+Process10           10        0/100          Ready
+Process11           11        0/100          Ready
+Process12           12        0/100          Ready
+Process13           13        0/100          Ready
+Process14           14        0/100          Ready
+Process15           15        0/100          Ready
+Process16           16        0/100          Ready
+Process17           17        0/100          Ready
+Process18           18        0/100          Ready
+Process19           19        0/100          Ready
+Process20           20        0/100          Ready
+Process21           21        0/100          Ready
+Process22           22        0/100          Ready
+Process23           23        0/100          Ready
+Process24           24        0/100          Ready
+Process25           25        0/100          Ready
+Process26           26        0/100          Ready
+Process27           27        0/100          Ready
+Process28           28        0/100          Ready
+Process29           29        0/100          Ready
+Process30           30        0/100          Ready
+Process31           31        0/100          Ready
+Process32           32        0/100          Ready
+Process33           33        0/100          Ready
+Process34           34        0/100          Ready
+Process35           35        0/100          Ready
+Process36           36        0/100          Ready
+Process37           37        0/100          Ready
+Process38           38        0/100          Ready
+Process39           39        0/100          Ready
+Process40           40        0/100          Ready
+Process41           41        0/100          Ready
+Process42           42        0/100          Ready
+Process43           43        0/100          Ready
+Process44           44        0/100          Ready
+Process45           45        0/100          Ready
+Process46           46        0/100          Ready
+Process47           47        0/100          Ready
+Process48           48        0/100          Ready
+Process49           49        0/100          Ready
+Process50           50        0/100          Ready
+Process51           51        0/100          Ready
+Process52           52        0/100          Ready
+Process53           53        0/100          Ready
+Process54           54        0/100          Ready
+Process55           55        0/100          Ready
+Process56           56        0/100          Ready
+Process57           57        0/100          Ready
+Process58           58        0/100          Ready
+Process59           59        0/100          Ready
+Process60           60        0/100          Ready
+Process61           61        0/100          Ready
+Process62           62        0/100          Ready
+Process63           63        0/100          Ready
+Process64           64        0/100          Ready
+Process65           65        0/100          Ready
+Process66           66        0/100          Ready
+Process67           67        0/100          Ready
+Process68           68        0/100          Ready
+Process69           69        0/100          Ready
+Process70           70        0/100          Ready
+Process71           71        0/100          Ready
+Process72           72        0/100          Ready
+Process73           73        0/100          Ready
+Process74           74        0/100          Ready
+Process75           75        0/100          Ready
+Process76           76        0/100          Ready
+Process77           77        0/100          Ready
+Process78           78        0/100          Ready
+Process79           79        0/100          Ready
+Process80           80        0/100          Ready
+Process81           81        0/100          Ready
+Process82           82        0/100          Ready
+Process83           83        0/100          Ready
+Process84           84        0/100          Ready
+Process85           85        0/100          Ready
+Process86           86        0/100          Ready
+Process87           87        0/100          Ready
+Process88           88        0/100          Ready
+Process89           89        0/100          Ready
+Process90           90        0/100          Ready
+Process91           91        0/100          Ready
+Process92           92        0/100          Ready
+Process93           93        0/100          Ready
+Process94           94        0/100          Ready
+Process95           95        0/100          Ready
+Process96           96        0/100          Ready
+Process97           97        0/100          Ready
+Process98           98        0/100          Ready
+Process99           99        0/100          Ready
+Process100          100       0/100          Ready
+Process101          101       0/100          Ready
+Process102          102       0/100          Ready
+Process103          103       0/100          Ready
+Process104          104       0/100          Ready
+Process105          105       0/100          Ready
+Process106          106       0/100          Ready
+Process107          107       0/100          Ready
+Process108          108       0/100          Ready
+Process109          109       0/100          Ready
+Process110          110       0/100          Ready
+Process111          111       0/100          Ready
+Process112          112       0/100          Ready
+Process113          113       0/100          Ready
+Process114          114       0/100          Ready
+Process115          115       0/100          Ready
+Process116          116       0/100          Ready
+Process117          117       0/100          Ready
+Process118          118       0/100          Ready
+Process119          119       0/100          Ready
+Process1            1         80/100         Running
+Process2            2         80/100         Running
+Process3            3         80/100         Running
+Process4            4         80/100         Running
+------------------------------------------------------------
+>>>>>>> 6d1ea574afa247b79019579dea8bfb7b547ff08f
