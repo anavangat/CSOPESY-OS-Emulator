@@ -6,6 +6,7 @@
 #include <memory>
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include "Process.h"
 #include "ReadyQueue.h"
 #include "PrintInstruction.h"
@@ -66,8 +67,9 @@ public:
 		generationEnabled = false;
 	}
 
-	std::vector<std::shared_ptr<Process>> getProcessesByState(Process::ProcessState state) const {
+	std::vector<std::shared_ptr<Process>> getProcessesByState(Process::ProcessState state) {
 		std::vector<std::shared_ptr<Process>> result;
+		std::lock_guard<std::mutex> lock(allProcessesMutex);
 		for (const auto& process : allProcesses) {
 			if (process->getState() == state) {
 				result.push_back(process);
@@ -103,6 +105,7 @@ protected:
 
 	// list of all processes for screen -ls and report-util
 	std::vector<std::shared_ptr<Process>> allProcesses;
+	std::mutex allProcessesMutex; // mutex to protect access to allProcesses
 
 	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
 	
@@ -112,7 +115,7 @@ protected:
 			if (process == nullptr) break; // stop signal
 
 			process->setState(Process::RUNNING);
-			while (!process->isFinished()) {
+			while (running && !process->isFinished()) {
 				process->executeCurrentInstruction();
 				process->moveToNextInstruction();
 
@@ -121,7 +124,9 @@ protected:
 					 // wait for delaysPerExec ticks
 				}
 			}
-			process->setState(Process::FINISHED);
+			if (process->isFinished()) {
+				process->setState(Process::FINISHED);
+			}
 		}
 	}
 
@@ -131,7 +136,10 @@ protected:
 			if (generationEnabled && 
 				cpuTick.load() - lastTick >= batchProcessFreq) {
 				auto process = createProcess(pid++);
-				allProcesses.push_back(process);
+				{
+					std::lock_guard<std::mutex> lock(allProcessesMutex);
+					allProcesses.push_back(process);
+				}
 				lastTick = cpuTick.load();
 			}
 		}
