@@ -38,7 +38,7 @@ void LogUtils::print_command(const Process& process, int core_id) {
 #endif
 }
 
-void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running, const std::vector<std::shared_ptr<Process>>& finished) {
+void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& ready, const std::vector<std::shared_ptr<Process>>& running, const std::vector<std::shared_ptr<Process>>& finished) {
     std::ofstream logFile("csopesy-log.txt");
     if (!logFile.is_open()) {
         std::cerr << "Error: Could not create csopesy-log.txt" << std::endl;
@@ -52,6 +52,9 @@ void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& ru
     printTableHeaders(logFile);
     logFile << std::string(60, '-') << std::endl;
 
+    for (const auto& p : ready) {
+        formatProcessRow(logFile, p);
+    }
     for (const auto& p : running) {
         formatProcessRow(logFile, p);
     }

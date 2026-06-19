@@ -19,7 +19,9 @@ public:
 
     //Creates csopesy-log.txt with a table of all processes.
   
-    static void dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running, const std::vector<std::shared_ptr<Process>>& finished);
+    static void dump_emulator_log(const std::vector<std::shared_ptr<Process>>& ready,
+                                  const std::vector<std::shared_ptr<Process>>& running, 
+                                  const std::vector<std::shared_ptr<Process>>& finished);
 
     //Shared Formatter
     static void formatProcessRow(std::ostream& os, const std::shared_ptr<Process> p);

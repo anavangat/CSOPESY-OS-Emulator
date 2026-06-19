@@ -178,9 +178,10 @@ int main() {
 		}
 		else if (command == "report-util") {
 			std::cout << "Generating execution report..." << std::endl;
+			std::vector<std::shared_ptr<Process>> readyProcesses = scheduler->getProcessesByState(Process::ProcessState::READY);
 			std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
 			std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
-			LogUtils::dump_emulator_log(runningProcesses, finishedProcesses);
+			LogUtils::dump_emulator_log(readyProcesses, runningProcesses, finishedProcesses);
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (command == "clear") {
