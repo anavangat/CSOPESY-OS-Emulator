@@ -90,6 +90,12 @@ void LogUtils::formatProcessRow(std::ostream& os, const std::shared_ptr<Process>
         default:                statusStr = "Unknown"; break;
     }
 
+    std::string coreStr = "N/A";
+    if (p->getState() == Process::RUNNING || p->getState() == Process::FINISHED) {
+        // Fixed: Changed from getCoreId() to getCoreID() to match your Process.h exactly
+        coreStr = std::to_string(p->getCoreID()); 
+    }
+
     os << std::left << std::setw(20) << p->getName()
        << std::setw(10) << p->getPid()
        << std::setw(15) << insCount 
