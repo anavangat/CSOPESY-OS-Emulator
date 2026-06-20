@@ -59,7 +59,9 @@ public:
 	}
 
 	void startDummyProcessGeneration() {
-		std::cout << "started dummy process generation:" << std::endl;
+		//std::cout << "started dummy process generation:" << std::endl;
+		std::cout << "started 10 dummy process generation:" << std::endl;
+
 		generationEnabled = true;
 	}
 
@@ -135,15 +137,18 @@ protected:
 
 	void dummyProcessGenerationLoop() {
 		int lastTick = cpuTick.load();
+		int n = 0; // Comment out for MO submission
+
 		while (running) {
 			if (generationEnabled && 
-				cpuTick.load() - lastTick >= batchProcessFreq) {
+				cpuTick.load() - lastTick >= batchProcessFreq && n < 10) {
 				auto process = createProcess(pid++);
 				{
 					std::lock_guard<std::mutex> lock(allProcessesMutex);
 					allProcesses.push_back(process);
 				}
 				lastTick = cpuTick.load();
+				n++;
 			}
 		}
 	}

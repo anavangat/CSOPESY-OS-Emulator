@@ -116,7 +116,7 @@ int main() {
 	std::thread cpuTickThread([&cpuTick]() {
 		while (true) {
 			cpuTick++;
-			// std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 1 tick = 1ms
+			std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 1 tick = 1ms
 		}
 	});
 
@@ -139,7 +139,7 @@ int main() {
 		}
 
 		if (!initialized) {
-			if (command == "init") {
+			if (command == "initialize") {
 				cfg = parseConfig("config.txt");
 				cfgLoaded = true;
 
@@ -161,32 +161,50 @@ int main() {
 			continue;
 		}
 
-		if (command == "init") {
-			std::cout << "System is already initialized" << std::endl; 
+		// Tokenize the input so sub-arguments are supported (e.g. "screen -ls").
+		// cmd = first token (the actual command), arg = second token (its sub-argument, if any).
+		std::vector<std::string> tokens;
+		{
+			std::istringstream tokenStream(command);
+			std::string tok;
+			while (tokenStream >> tok) tokens.push_back(tok);
+		}
+		std::string cmd = tokens.empty() ? "" : tokens[0];
+		std::string arg = tokens.size() > 1 ? tokens[1] : "";
+
+		if (cmd == "initialize") {
+			std::cout << "System is already initialized" << std::endl;
 			std::cout << "---------------------------------------------\n" << std::endl;
 			initialized = true;
 		}
-		else if (command == "screen") {
-			std::cout << "Screen command recognized. Doing something....." << std::endl;
+		else if (cmd == "screen") {
+			if (arg == "-ls") {
+				std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
+				std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
+				LogUtils::printScreenList(std::cout, runningProcesses, finishedProcesses);
+			}
+			else {
+				// "screen -s <name>" / "screen -r <name>" are not part of this milestone.
+				std::cout << "Screen command recognized. Doing something....." << std::endl;
+			}
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
-		else if (command == "scheduler-start") {
+		else if (cmd == "scheduler-start") {
 			scheduler->startDummyProcessGeneration();
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
-		else if (command == "scheduler-stop") {
+		else if (cmd == "scheduler-stop") {
 			scheduler->stopDummyProcessGeneration();
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
-		else if (command == "report-util") {
+		else if (cmd == "report-util") {
 			std::cout << "Generating execution report..." << std::endl;
-			std::vector<std::shared_ptr<Process>> readyProcesses = scheduler->getProcessesByState(Process::ProcessState::READY);
 			std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
 			std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
-			LogUtils::dump_emulator_log(readyProcesses, runningProcesses, finishedProcesses);
+			LogUtils::dump_emulator_log(runningProcesses, finishedProcesses);
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
-		else if (command == "clear") {
+		else if (cmd == "clear") {
 			system("cls");
 			printHeader();
 		}

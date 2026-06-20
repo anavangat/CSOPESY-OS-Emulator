@@ -17,15 +17,21 @@ public:
 
     static void print_command(const Process& process, int core_id);
 
-    //Creates csopesy-log.txt with a table of all processes.
-  
-    static void dump_emulator_log(const std::vector<std::shared_ptr<Process>>& ready,
-                                  const std::vector<std::shared_ptr<Process>>& running, 
+    // Writes the "screen -ls" style Running/Finished report to csopesy-log.txt.
+
+    static void dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running,
                                   const std::vector<std::shared_ptr<Process>>& finished);
 
-    //Shared Formatter
-    static void formatProcessRow(std::ostream& os, const std::shared_ptr<Process> p);
-    static void printTableHeaders(std::ostream& os);
+    // Shared formatter used by both "screen -ls" (console, via std::cout) and
+    // "report-util" (file, via an ofstream) so the two stay visually identical.
+
+    static void printScreenList(std::ostream& os,
+                                const std::vector<std::shared_ptr<Process>>& running,
+                                const std::vector<std::shared_ptr<Process>>& finished);
+
+private:
+    // Formats a single process row: "<name>   <timestamp>   <Core: N | Finished>   <x / total>"
+    static void printProcessLine(std::ostream& os, const std::shared_ptr<Process>& p);
 };
 
 #endif
