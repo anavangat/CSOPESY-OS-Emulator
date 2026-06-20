@@ -6,6 +6,8 @@
 #include <mutex>
 #include <chrono>
 #include <string>
+#include <vector>
+#include <memory>
 #include <filesystem>
 
 // Global mutex to prevent file write collisions from multiple CPU threads
