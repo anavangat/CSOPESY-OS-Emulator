@@ -35,15 +35,17 @@ public:
 	void executeCurrentInstruction();
 	void moveToNextInstruction();
 	bool isFinished() const;
-	int coreID; // Assigned core ID, -1 if not assigned
 	void setCoreID(int core);
+
+	void addInMemoryLog(const std::string& logline);
+	const std::vector<std::string>& getInMemoryLogs() const;
 
 private:
 	int pid;
+	int coreID; //Assigned core ID, -1 if not assigned
 	std::string name;
 
-	ProcessState state;
-	//std::atomic<ProcessState> state;
+	std::atomic<ProcessState> state;
 	std::time_t arrivalTime;
 
 
@@ -51,7 +53,7 @@ private:
 	int programCounter; // current instruction number being executed
 	int totalInstructions;
 
-
+	std::vector<std::string> inMemoryLogs;
 
 	SymbolTable symbolTable;
 };

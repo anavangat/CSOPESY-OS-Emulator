@@ -49,14 +49,17 @@ namespace {
 } // namespace
 
 void LogUtils::print_command(const Process& process, int core_id) {
-#if ENABLE_PROCESS_LOGGING
     // Tracks which processes (by name) already had their header written THIS run,
     // so the header is emitted exactly once per process and a stale file left over
     // from a previous run doesn't get silently appended to.
     static std::unordered_set<std::string> initializedLogs;
 
     std::lock_guard<std::mutex> lock(logFileMutex); // serializes all log writes across worker threads
+    std::string rawLogMessage = getCurrentTimestamp() + " Core:" + std::to_string(core_id) +
+        " \"Hello world from " + process.getName() + "!\"";
 
+    const_cast<Process&>(process).addInMemoryLog(rawLogMessage);
+#if ENABLE_PROCESS_LOGGING
     std::filesystem::create_directories("logs");
 
     const std::string filePath = "logs/" + process.getName() + ".txt";
@@ -73,8 +76,7 @@ void LogUtils::print_command(const Process& process, int core_id) {
             initializedLogs.insert(process.getName());
         }
 
-        outFile << getCurrentTimestamp() << " Core:" << core_id
-            << " \"Hello world from " << process.getName() << "!\"" << std::endl;
+        outFile << rawLogMessage << std::endl;
         outFile.close();
     }
 #endif
@@ -86,8 +88,41 @@ void LogUtils::printProcessLine(std::ostream& os, const std::shared_ptr<Process>
     const int total = p->getTotalInstructions();
     const int remaining = p->getRemainingInstructions();
     const int executed = total - remaining;
+    std::string progressStr = std::to_string(executed) + "/" + std::to_string(total);
 
-    os << std::left << std::setw(13) << p->getName()
+    std::string coreStr = "N/A";
+
+    if (p->getState() == Process::RUNNING || p->getState() == Process::FINISHED){
+        if (p-> getCoreID() != -1){
+            coreStr = std::to_string(p->getCoreID());
+        }
+    }
+
+    std::string stateStr;
+    switch (p-> getState()) {
+        case Process::READY:
+            stateStr = "Ready";
+            break;
+        case Process::RUNNING:
+            stateStr = "Running";
+            break;
+        case Process::FINISHED:
+            stateStr = "Finished";
+            break;
+        case Process::WAITING:
+            stateStr = "Waiting";
+            break;
+        default: 
+            stateStr = "Unknown";
+            break;
+    }
+
+    os << std::left << std::setw(15) << p->getName()
+        << std::setw(25) << formatTimestamp(p->getArrivalTime())
+        << std::setw(12) << stateStr
+        << std::setw(15) << progressStr
+        << coreStr << std::endl;
+    /**os << std::left << std::setw(13) << p->getName()
         << std::setw(26) << formatTimestamp(p->getArrivalTime());
 
     if (p->getState() == Process::FINISHED) {
@@ -97,13 +132,27 @@ void LogUtils::printProcessLine(std::ostream& os, const std::shared_ptr<Process>
         os << std::left << std::setw(11) << ("Core: " + std::to_string(p->getCoreID()));
     }
 
-    os << executed << " / " << total << std::endl;
+    os << executed << " / " << total << std::endl;**/
 }
 
 void LogUtils::printScreenList(std::ostream& os,
     const std::vector<std::shared_ptr<Process>>& running,
     const std::vector<std::shared_ptr<Process>>& finished) {
-    os << std::string(45, '-') << std::endl;
+    
+    os << std::left << std::setw(15) << "Process Name"
+       << std::setw(25) << "Arrival Time"
+       << std::setw(12) << "Status"
+       << std::setw(15) << "Instructions"
+       << "Core" << std::endl;
+    os << std::string(75, '-') << std::endl;
+
+    for (const auto& p : running) {
+        printProcessLine(os, p);
+    }
+    for (const auto& p : finished) {
+        printProcessLine(os, p);
+    }
+    /**    os << std::string(45, '-') << std::endl;
 
     os << "Running processes:" << std::endl;
     for (const auto& p : running) {
@@ -114,7 +163,7 @@ void LogUtils::printScreenList(std::ostream& os,
     os << "Finished processes:" << std::endl;
     for (const auto& p : finished) {
         printProcessLine(os, p);
-    }
+    }**/
 
 }
 
@@ -126,10 +175,27 @@ void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& ru
         return;
     }
 
+    size_t activeCoresCount = running.size();
+    
+    int maxCoreIDFound = -1;
+    for (const auto& p : running) {
+        if (p->getCoreID() > maxCoreIDFound) maxCoreIDFound = p->getCoreID();
+    }
+
+    int estimatedTotalCores = (maxCoreIDFound >= 4) ? maxCoreIDFound + 1 : 4; 
+    int availableCores = estimatedTotalCores - static_cast<int>(activeCoresCount);
+    if (availableCores < 0) availableCores = 0;
+
+    double cpuUtilization = (static_cast<double>(activeCoresCount) / estimatedTotalCores) * 100.0;
+
     logFile << "CSOPESY Emulator Execution Report" << std::endl;
     logFile << "Generated on: " << getCurrentTimestamp() << std::endl;
-    logFile << std::endl;
+    logFile << std::string (75, '-') << std::endl;
 
+    logFile << "CPU Utilization: " << std::fixed << std::setprecision(2) << cpuUtilization << "%" << std::endl;
+    logFile << "Core Used: " << activeCoresCount << " | Cores Available: " << availableCores <<std::endl;
+    logFile << std::string (75, '-') << std::endl;
+    
     printScreenList(logFile, running, finished);
 
     logFile.close();

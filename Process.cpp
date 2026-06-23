@@ -9,11 +9,11 @@ std::string Process::getName() const {
 }
 
 Process::ProcessState Process::getState() const {
-	return state;
+	return state.load();
 }
 
 void Process::setState(ProcessState newState) {
-	state = newState;
+	state.store(newState);
 }
 
 int Process::getCoreID() const {
@@ -64,6 +64,10 @@ void Process::moveToNextInstruction() {
 
 bool Process::isFinished() const {
 	return programCounter >= static_cast<int>(instructions.size());
+}
+
+void Process::addInMemoryLog(const std::string &logline){
+	inMemoryLogs.push_back(logline);
 }
 
 void Process::setCoreID(int core) {

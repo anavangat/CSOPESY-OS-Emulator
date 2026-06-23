@@ -154,17 +154,23 @@ protected:
 	}
 
 	std::shared_ptr<Process> createProcess(int pid) {
-		std::string n = std::to_string(pid);
-		std::string name = "Process" + n;
+		std::string nameStr = std::to_string(pid);
+		if (nameStr.length() == 1){
+			nameStr = "0" + nameStr;
+		}
 
-		auto process = std::make_shared<Process>(pid, name, std::time(nullptr));
+		std::string paddedName = "p" + nameStr;
+		/**std::string n = std::to_string(pid);
+		std::string name = "Process" + n;**/
+
+		auto process = std::make_shared<Process>(pid, paddedName, std::time(nullptr));
 
 		// generate instructions and add to process
 		int instructionCount = rand() % (maxIns - minIns + 1) + minIns; // random number of instructions between minIns and maxIns
 
 		for (int i = 0; i < instructionCount; i++) {
 
-			std::string text = "Instruction " + std::to_string(i + 1) + " of " + name;
+			std::string text = "Instruction " + std::to_string(i + 1) + " of " + paddedName;
 
 			process->addInstruction(std::make_shared<PrintInstruction>(pid, text));
 		}
