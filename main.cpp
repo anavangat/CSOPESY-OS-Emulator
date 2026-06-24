@@ -14,6 +14,7 @@
 #include "Process.h"
 #include "AScheduler.h"
 #include "FCFS_Scheduler.h"
+#include "RR_Scheduler.h"
 
 void printHeader() {
 	std::cout << " ____  ____  ____  ____  _____ ____ ___  _" << std::endl;
@@ -116,7 +117,7 @@ int main() {
 	std::thread cpuTickThread([&cpuTick]() {
 		while (true) {
 			cpuTick++;
-			std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 1 tick = 1ms
+			//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1 tick = 1ms
 		}
 	});
 
@@ -147,7 +148,7 @@ int main() {
 					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick);
 				}
 				else if (cfg.scheduler == "rr") {
-					// scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cfg.quantumCycles);
+					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cfg.quantumCycles);
 				}
 				scheduler->start();
 
