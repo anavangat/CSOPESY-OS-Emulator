@@ -59,8 +59,7 @@ public:
 	}
 
 	void startDummyProcessGeneration() {
-		//std::cout << "started dummy process generation:" << std::endl;
-		std::cout << "started 10 dummy process generation:" << std::endl;
+		std::cout << "started dummy process generation:" << std::endl;
 
 		generationEnabled = true;
 	}
@@ -113,7 +112,7 @@ protected:
 	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
 	
 	virtual void workerLoop(int coreID) {
-		while (true) {
+		while (running) {
 			auto process = readyQueue.pop();
 			if (process == nullptr) break; // stop signal
 
@@ -137,18 +136,16 @@ protected:
 
 	void dummyProcessGenerationLoop() {
 		int lastTick = cpuTick.load();
-		int n = 0; // Comment out for MO submission
 
 		while (running) {
 			if (generationEnabled && 
-				cpuTick.load() - lastTick >= batchProcessFreq && n < 10) {
+				cpuTick.load() - lastTick >= batchProcessFreq) {
 				auto process = createProcess(pid++);
 				{
 					std::lock_guard<std::mutex> lock(allProcessesMutex);
 					allProcesses.push_back(process);
 				}
 				lastTick = cpuTick.load();
-				n++;
 			}
 		}
 	}
