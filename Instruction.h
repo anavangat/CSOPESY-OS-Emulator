@@ -4,7 +4,8 @@ class Instruction
 {
 public:
 	enum InstructionType {
-		PRINT
+		PRINT,
+		SLEEP
 	};
 
 	Instruction(int pid, InstructionType type);

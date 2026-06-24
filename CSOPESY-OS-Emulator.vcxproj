@@ -139,6 +139,7 @@
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="ReadyQueue.cpp" />
     <ClCompile Include="RR_Scheduler.cpp" />
+    <ClCompile Include="SleepInstruction.cpp" />
     <ClCompile Include="SymbolTable.cpp" />
     <ClCompile Include="LogUtils.cpp" />
   </ItemGroup>
@@ -153,6 +154,7 @@
     <ClInclude Include="Process.h" />
     <ClInclude Include="ReadyQueue.h" />
     <ClInclude Include="RR_Scheduler.h" />
+    <ClInclude Include="SleepInstruction.h" />
     <ClInclude Include="SymbolTable.h" />
     <ClInclude Include="LogUtils.h" />
   </ItemGroup>

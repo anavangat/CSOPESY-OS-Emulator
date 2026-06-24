@@ -1,6 +1,8 @@
 #include "RR_Scheduler.h"
 #include "Process.h"
 #include "LogUtils.h"
+#include "SleepInstruction.h"
+#include "Instruction.h"
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -34,11 +36,37 @@ void RR_Scheduler::workerLoop(int coreID) {
 		process->setState(Process::RUNNING);
 		process->setCoreID(coreID);
 		int executedThisQuantum = 0;
+		bool wentToSleep = false;
+
 		while (running && !process->isFinished() && executedThisQuantum < quantum) {
+			auto instruction = process->getCurrentInstruction();
 			process->executeCurrentInstruction();
 			LogUtils::print_command(*process, coreID);
+
+			bool isSleep = instruction && instruction->getInstructionType() == Instruction::SLEEP;
+			int sleepTicks = 0;
+			if (isSleep) {
+				auto sleepInstruction = std::dynamic_pointer_cast<SleepInstruction>(instruction);
+				if (sleepInstruction) {
+					sleepTicks = sleepInstruction->getTicks();
+				}
+			}
+
 			process->moveToNextInstruction();
 			executedThisQuantum++;
+
+			if (isSleep) {
+				process->setCoreID(-1);
+				process->setState(Process::WAITING);
+				process->setWakeUpTick(cpuTick.load() + sleepTicks);
+				{
+					std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
+					sleepingProcesses.push_back(process);
+				}
+				wentToSleep = true;
+				break; // exit the quantum loop if the process goes to sleep
+			}
+
 			int waitStartTick = cpuTick.load();
 			while (cpuTick.load() - waitStartTick < delaysPerExec) {
 				// wait for delaysPerExec ticks

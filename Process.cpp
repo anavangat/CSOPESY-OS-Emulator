@@ -62,6 +62,13 @@ void Process::moveToNextInstruction() {
 	}
 }
 
+std::shared_ptr<Instruction> Process::getCurrentInstruction() const {
+	if (programCounter < 0 || programCounter >= static_cast<int>(instructions.size())) {
+		return nullptr;
+	}
+	return instructions[programCounter];
+}
+
 bool Process::isFinished() const {
 	return programCounter >= static_cast<int>(instructions.size());
 }
@@ -72,4 +79,12 @@ void Process::addInMemoryLog(const std::string &logline){
 
 void Process::setCoreID(int core) {
     this->coreID = core;
+}
+
+void Process::setWakeUpTick(int tick) {
+	this->wakeUpTick = tick;
+}
+
+int Process::getWakeUpTick() const {
+	return wakeUpTick;
 }

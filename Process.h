@@ -34,8 +34,12 @@ public:
 	void addInstruction(const std::shared_ptr<Instruction>& instruction);
 	void executeCurrentInstruction();
 	void moveToNextInstruction();
+	std::shared_ptr<Instruction> getCurrentInstruction() const;
 	bool isFinished() const;
 	void setCoreID(int core);
+
+	void setWakeUpTick(int tick);
+	int getWakeUpTick() const;
 
 	void addInMemoryLog(const std::string& logline);
 	const std::vector<std::string>& getInMemoryLogs() const;
@@ -48,10 +52,11 @@ private:
 	std::atomic<ProcessState> state;
 	std::time_t arrivalTime;
 
-
 	std::vector<std::shared_ptr<Instruction>> instructions;
 	int programCounter; // current instruction number being executed
 	int totalInstructions;
+
+	int wakeUpTick = 0; // The tick at which the process should wake up from waiting state
 
 	std::vector<std::string> inMemoryLogs;
 

@@ -10,6 +10,7 @@
 #include "Process.h"
 #include "ReadyQueue.h"
 #include "PrintInstruction.h"
+#include "SleepInstruction.h"
 #include "LogUtils.h"
 
 class AScheduler
@@ -30,6 +31,7 @@ public:
 		}
 
 		dummyProcessGeneratorThread = std::thread(&AScheduler::dummyProcessGenerationLoop, this);
+		//sleepWakeThread = std::thread(&AScheduler::, this);
 	}
 
 	void stop() {
@@ -55,6 +57,10 @@ public:
 
 		if (dummyProcessGeneratorThread.joinable()) {
 			dummyProcessGeneratorThread.join();
+		}
+
+		if (sleepWakeThread.joinable()) {
+			sleepWakeThread.join();
 		}
 	}
 
@@ -109,6 +115,10 @@ protected:
 	std::vector<std::shared_ptr<Process>> allProcesses;
 	std::mutex allProcessesMutex; // mutex to protect access to allProcesses
 
+	std::vector<std::shared_ptr<Process>> sleepingProcesses; // list of sleeping processes
+	std::mutex sleepingProcessesMutex; // mutex to protect access to sleepingProcesses
+	std::thread sleepWakeThread; // thread for checking sleeping processes
+
 	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
 	
 	virtual void workerLoop(int coreID) {
@@ -119,9 +129,31 @@ protected:
 			process->setState(Process::RUNNING);
 			process->setCoreID(coreID);
 			while (running && !process->isFinished()) {
+				auto instruction = process->getCurrentInstruction();
 				process->executeCurrentInstruction();
 				LogUtils::print_command(*process, coreID);
+
+				bool isSleep = instruction && instruction->getInstructionType() == Instruction::SLEEP;
+				int sleepTicks = 0;
+				if (isSleep) {
+					auto sleepInstruction = std::dynamic_pointer_cast<SleepInstruction>(instruction);
+					if (sleepInstruction) {
+						sleepTicks = sleepInstruction->getTicks();
+					}
+				}
+
 				process->moveToNextInstruction();
+
+				if (isSleep) {
+					process->setCoreID(-1);
+					process->setState(Process::WAITING);
+					process->setWakeUpTick(cpuTick.load() + sleepTicks);
+					{
+						std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
+						sleepingProcesses.push_back(process);
+					}
+					break; // exit the inner loop to allow other processes to run
+				}
 
 				int waitStartTick = cpuTick.load();
 				while (cpuTick.load() - waitStartTick < delaysPerExec) {
@@ -146,6 +178,32 @@ protected:
 					allProcesses.push_back(process);
 				}
 				lastTick = cpuTick.load();
+			}
+		}
+	}
+
+	void sleepWakeLoop() {
+		while (running) {
+			std::vector<std::shared_ptr<Process>> processesToWake;
+			{
+				std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
+				int currentTick = cpuTick.load();
+
+				auto it = sleepingProcesses.begin();
+				while (it != sleepingProcesses.end()) {
+					if (currentTick >= (*it)->getWakeUpTick()) {
+						processesToWake.push_back(*it);
+						it = sleepingProcesses.erase(it);
+					}
+					else {
+						it++;
+					}
+				}
+			}
+			
+			for (auto& p : processesToWake) {
+				p->setState(Process::READY);
+				readyQueue.push(p);
 			}
 		}
 	}
