@@ -1,0 +1,20 @@
+#pragma once
+#include <vector>
+#include <memory>
+#include "Instruction.h"
+class ForInstruction : public Instruction
+{
+public:
+	ForInstruction(int pid, const std::vector<std::shared_ptr<Instruction>>& body, int repeats);
+	void execute() override;
+
+	const std::vector<std::shared_ptr<Instruction>>& getBody() const;
+	int getRepeats() const;
+
+	static void flatten(const std::shared_ptr<Instruction>& instruction, std::vector < std::shared_ptr<Instruction>>& out);
+
+private:
+	std::vector<std::shared_ptr<Instruction>> body;
+	int repeats;
+};
+

@@ -5,7 +5,8 @@ class Instruction
 public:
 	enum InstructionType {
 		PRINT,
-		SLEEP
+		SLEEP,
+		FOR
 	};
 
 	Instruction(int pid, InstructionType type);

@@ -133,6 +133,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="FCFS_Scheduler.cpp" />
+    <ClCompile Include="ForInstruction.cpp" />
     <ClCompile Include="Instruction.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PrintInstruction.cpp" />
@@ -149,6 +150,7 @@
   <ItemGroup>
     <ClInclude Include="AScheduler.h" />
     <ClInclude Include="FCFS_Scheduler.h" />
+    <ClInclude Include="ForInstruction.h" />
     <ClInclude Include="Instruction.h" />
     <ClInclude Include="PrintInstruction.h" />
     <ClInclude Include="Process.h" />

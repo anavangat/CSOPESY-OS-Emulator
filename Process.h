@@ -5,6 +5,7 @@
 #include <memory>
 #include <atomic>
 #include "Instruction.h"
+#include "ForInstruction.h"
 #include "SymbolTable.h"
 
 class Process

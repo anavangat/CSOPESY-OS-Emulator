@@ -41,8 +41,13 @@ void Process::addInstruction(const std::shared_ptr<Instruction>& instruction) {
 		return;
 	}
 
-	instructions.push_back(instruction);
-	++totalInstructions;
+	std::vector<std::shared_ptr<Instruction>> flattenedInstructions;
+	ForInstruction::flatten(instruction, flattenedInstructions);
+
+	for (const auto& instr : flattenedInstructions) {
+		instructions.push_back(instr);
+		++totalInstructions;
+	}
 }
 
 void Process::executeCurrentInstruction() {
