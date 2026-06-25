@@ -6,11 +6,11 @@
 class SymbolTable
 {
 public: 
-	void setVariable(const std::string& name, int value) { 
+	void setVariable(const std::string& name, uint16_t value) { 
 		table[name] = value; 
 	} 
 	
-	int getVariable(const std::string& name) {
+	uint16_t getVariable(const std::string& name) {
 		if (table.find(name) != table.end()) { 
 			return table[name]; 
 		} 

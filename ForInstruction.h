@@ -2,11 +2,12 @@
 #include <vector>
 #include <memory>
 #include "Instruction.h"
+#include "SymbolTable.h"
 class ForInstruction : public Instruction
 {
 public:
 	ForInstruction(int pid, const std::vector<std::shared_ptr<Instruction>>& body, int repeats);
-	void execute() override;
+	void execute(Process& process, SymbolTable& symbolTable) override;
 
 	const std::vector<std::shared_ptr<Instruction>>& getBody() const;
 	int getRepeats() const;

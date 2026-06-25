@@ -57,7 +57,7 @@ void Process::executeCurrentInstruction() {
 
 	auto instruction = instructions[programCounter];
 	if (instruction) {
-		instruction->execute();
+		instruction->execute(*this, symbolTable);
 	}
 }
 
@@ -78,8 +78,25 @@ bool Process::isFinished() const {
 	return programCounter >= static_cast<int>(instructions.size());
 }
 
-void Process::addInMemoryLog(const std::string &logline){
-	inMemoryLogs.push_back(logline);
+void Process::addInMemoryLog(int tick, int coreID, const std::string& event){
+	std::lock_guard<std::mutex> lock(logMutex);
+
+	inMemoryLogs.emplace_back( tick, coreID, pid, event );
+}
+
+ std::vector<LogEntry> Process::getInMemoryLogs() const {
+	std::lock_guard<std::mutex> lock(logMutex);
+	return inMemoryLogs;
+}
+
+void Process::appendOutput(const std::string& output) {
+	std::lock_guard<std::mutex> lock(outputMutex);
+	outputBuffer.push_back(output);
+}
+
+std::vector<std::string> Process::getOutput()const {
+	std::lock_guard<std::mutex> lock(outputMutex);
+	return outputBuffer;
 }
 
 void Process::setCoreID(int core) {

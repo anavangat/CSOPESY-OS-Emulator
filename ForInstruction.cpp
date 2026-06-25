@@ -4,13 +4,13 @@ ForInstruction::ForInstruction(int pid, const std::vector<std::shared_ptr<Instru
 	: Instruction(pid, InstructionType::FOR), body(body), repeats(repeats) {
 }
 
-void ForInstruction::execute() {
-	Instruction::execute(); // Call base class execute
+void ForInstruction::execute(Process& process, SymbolTable& symbolTable) {
+	Instruction::execute(process, symbolTable); // Call base class execute
 
 	for (int i = 0; i < repeats; i++) {
 		for (const auto& instruction : body) {
 			if (instruction) {
-				instruction->execute();
+				instruction->execute(process, symbolTable);
 			}
 		}
 	}

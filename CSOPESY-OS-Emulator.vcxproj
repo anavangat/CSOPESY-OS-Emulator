@@ -132,15 +132,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AddInstruction.cpp" />
+    <ClCompile Include="DeclareInstruction.cpp" />
     <ClCompile Include="FCFS_Scheduler.cpp" />
     <ClCompile Include="ForInstruction.cpp" />
     <ClCompile Include="Instruction.cpp" />
+    <ClCompile Include="LogEntry.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PrintInstruction.cpp" />
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="ReadyQueue.cpp" />
     <ClCompile Include="RR_Scheduler.cpp" />
     <ClCompile Include="SleepInstruction.cpp" />
+    <ClCompile Include="SubtractInstruction.cpp" />
     <ClCompile Include="SymbolTable.cpp" />
     <ClCompile Include="LogUtils.cpp" />
   </ItemGroup>
@@ -148,15 +152,19 @@
     <Text Include="config.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AddInstruction.h" />
     <ClInclude Include="AScheduler.h" />
+    <ClInclude Include="DeclareInstruction.h" />
     <ClInclude Include="FCFS_Scheduler.h" />
     <ClInclude Include="ForInstruction.h" />
     <ClInclude Include="Instruction.h" />
+    <ClInclude Include="LogEntry.h" />
     <ClInclude Include="PrintInstruction.h" />
     <ClInclude Include="Process.h" />
     <ClInclude Include="ReadyQueue.h" />
     <ClInclude Include="RR_Scheduler.h" />
     <ClInclude Include="SleepInstruction.h" />
+    <ClInclude Include="SubtractInstruction.h" />
     <ClInclude Include="SymbolTable.h" />
     <ClInclude Include="LogUtils.h" />
   </ItemGroup>
