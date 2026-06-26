@@ -75,7 +75,7 @@ void RR_Scheduler::workerLoop(int coreID) {
 		if (process->isFinished()) {
 			process->setState(Process::FINISHED);
 		}
-		else {
+		else if (!wentToSleep) {
 			process->setState(Process::READY);
 			readyQueue.push(process); // re-enqueue the process for the next round
 		}
