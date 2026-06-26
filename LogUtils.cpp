@@ -48,7 +48,7 @@ namespace {
 
 } // namespace
 
-void LogUtils::print_command(const Process& process, int core_id) {
+void LogUtils::print_command(int tick, const Process& process, int core_id) {
     // Tracks which processes (by name) already had their header written THIS run,
     // so the header is emitted exactly once per process and a stale file left over
     // from a previous run doesn't get silently appended to.
@@ -58,7 +58,7 @@ void LogUtils::print_command(const Process& process, int core_id) {
     std::string rawLogMessage = getCurrentTimestamp() + " Core:" + std::to_string(core_id) +
         " \"Hello world from " + process.getName() + "!\"";
 
-    const_cast<Process&>(process).addInMemoryLog(0, core_id, rawLogMessage); //added a LogEntry class soo probably need to change this part
+    const_cast<Process&>(process).addInMemoryLog(tick, core_id, rawLogMessage); //added a LogEntry class soo probably need to change this part
 #if ENABLE_PROCESS_LOGGING
     std::filesystem::create_directories("logs");
 

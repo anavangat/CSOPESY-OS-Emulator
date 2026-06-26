@@ -41,7 +41,7 @@ void RR_Scheduler::workerLoop(int coreID) {
 		while (running && !process->isFinished() && executedThisQuantum < quantum) {
 			auto instruction = process->getCurrentInstruction();
 			process->executeCurrentInstruction();
-			LogUtils::print_command(*process, coreID);
+			LogUtils::print_command(cpuTick.load(), *process, coreID);
 
 			bool isSleep = instruction && instruction->getInstructionType() == Instruction::SLEEP;
 			int sleepTicks = 0;

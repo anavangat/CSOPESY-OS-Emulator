@@ -15,7 +15,7 @@ public:
 
     //Format: (MM/DD/YYYY HH:MM:SSam/pm) Core:N "Hello world from <name>!"
 
-    static void print_command(const Process& process, int core_id);
+    static void print_command(int tick, const Process& process, int core_id);
 
     // Writes the "screen -ls" style Running/Finished report to csopesy-log.txt.
 
