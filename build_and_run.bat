@@ -4,10 +4,8 @@ echo ===================================================
 echo  Compiling CSOPESY OS Emulator via MSVC (cl)...
 echo ===================================================
 
-:: /EHsc enables standard exception handling
-:: /std:c++17 specifies the language standard
-:: /Fe: sets the output executable name
-cl /EHsc /std:c++17 main.cpp LogUtils.cpp Process.cpp FCFS_Scheduler.cpp Instruction.cpp PrintInstruction.cpp ReadyQueue.cpp SymbolTable.cpp /Fe:emulator.exe
+
+cl /EHsc /std:c++17 main.cpp LogUtils.cpp Process.cpp FCFS_Scheduler.cpp RR_Scheduler.cpp Instruction.cpp PrintInstruction.cpp DeclareInstruction.cpp AddInstruction.cpp SubtractInstruction.cpp SleepInstruction.cpp ForInstruction.cpp ReadyQueue.cpp SymbolTable.cpp /Fe:emulator.exe
 
 :: Check if compilation succeeded
 if %errorlevel% equ 0 (

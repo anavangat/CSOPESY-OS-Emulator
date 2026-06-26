@@ -58,7 +58,7 @@ void LogUtils::print_command(const Process& process, int core_id) {
     std::string rawLogMessage = getCurrentTimestamp() + " Core:" + std::to_string(core_id) +
         " \"Hello world from " + process.getName() + "!\"";
 
-    const_cast<Process&>(process).addInMemoryLog(rawLogMessage); //added a LogEntry class soo probably need to change this part
+    const_cast<Process&>(process).addInMemoryLog(0, core_id, rawLogMessage); //added a LogEntry class soo probably need to change this part
 #if ENABLE_PROCESS_LOGGING
     std::filesystem::create_directories("logs");
 
