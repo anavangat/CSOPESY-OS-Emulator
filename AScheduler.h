@@ -236,158 +236,111 @@ protected:
 
 			//process->addInstruction(std::make_shared<PrintInstruction>(pid, text));
 
+			int remainingInstructions = instructionCount - process->getTotalInstructions();
+			auto instruction = createRandomInstruction(pid, paddedName, variables, remainingInstructions);
+			process->addInstruction(instruction);
+		}
 
-			int instructionType = rand() % 6; // random instruction type (0-5) - PRINT, SLEEP, ADD, SUBTRACT, FOR, DECLARE
+		return process;
+	}
 
-			switch (instructionType)
+
+	std::shared_ptr<Instruction> createRandomInstruction(int pid, const std::string& paddedName, std::vector<std::string>& variables, int remainingInstructions) {
+		int instructionType = rand() % 6; // random instruction type (0-5) - PRINT, SLEEP, ADD, SUBTRACT, FOR, DECLARE
+
+		switch (instructionType) {
+			case Instruction::PRINT:
 			{
-				case 0: // PRINT
-				{
-					if (variables.empty() || rand() % 2 == 0) { //if no variables or 50% chance, print a message of hello world
-						process->addInstruction(std::make_shared<PrintInstruction>(pid, "Hello world from " + paddedName));
-				
-					}
-					else
-					{
-						std::string varToPrint = variables[rand() % variables.size()];
-
-						process->addInstruction(std::make_shared<PrintInstruction>(pid, "Value of variable " + varToPrint + " is: " , varToPrint));
-					}
-					
-					break;
-
+				if (variables.empty() || rand() % 2 == 0) { //if no variables or 50% chance, print a message of hello world
+					return std::make_shared<PrintInstruction>(pid, "Hello world from " + paddedName);
 				}
+				else {
+					std::string varToPrint = variables[rand() % variables.size()];
+					return std::make_shared<PrintInstruction>(pid, "Value of variable " + varToPrint + " is: ", varToPrint);
+				}
+				break;
+			}
 
-				case 1: //DECLARE
-				{
+			case Instruction::DECLARE:
+			{
+				std::string var = "var" + std::to_string(variables.size()); // create a new variable name sequentially
+				uint16_t value = rand() % 100; // random value between 0 and 99;
+
+				variables.push_back(var); // add to list of variables
+
+				return std::make_shared<DeclareInstruction>(pid, var, value);
+				break;
+			}
+
+			case Instruction::ADD:
+			{
+				if (variables.size() >= 2) {
+					std::string dest = variables[rand() % variables.size()];
+					std::string var1 = variables[rand() % variables.size()]; // select a random variable from the list
+					std::string var2 = variables[rand() % variables.size()];
+					return std::make_shared<AddInstruction>(pid, dest, var1, var2);
+				}
+				else if (variables.size() < 2) {
 					std::string var = "var" + std::to_string(variables.size()); // create a new variable name sequentially
 					uint16_t value = rand() % 100; // random value between 0 and 99;
 
 					variables.push_back(var); // add to list of variables
 
-					process->addInstruction(std::make_shared<DeclareInstruction>(pid, var, value));
-					
-					break;
+					return std::make_shared<DeclareInstruction>(pid, var, value);
+				}
+				break;
+			}
+
+			case Instruction::SUBTRACT:
+			{
+				if (variables.size() >= 2) {
+					std::string dest = variables[rand() % variables.size()];
+					std::string var1 = variables[rand() % variables.size()]; // select a random variable from the list
+					std::string var2 = variables[rand() % variables.size()];
+					return std::make_shared<SubtractInstruction>(pid, dest, var1, var2);
+				}
+				else if (variables.size() < 2) {
+					std::string var = "var" + std::to_string(variables.size()); // create a new variable name sequentially
+					uint16_t value = rand() % 100; // random value between 0 and 99;
+
+					variables.push_back(var); // add to list of variables
+
+					return std::make_shared<DeclareInstruction>(pid, var, value);
+				}
+				break;
+			}
+
+			case Instruction::SLEEP:
+			{
+				int sleepTicks = rand() % 5 + 1; // random sleep ticks between 1 and 5
+				return std::make_shared<SleepInstruction>(pid, sleepTicks);
+				break;
+			}
+
+			case Instruction::FOR:
+			{
+				std::vector<std::shared_ptr<Instruction>> body;
+
+				int bodySize = rand() % 3 + 1; // random body size between 1 and 3
+				bodySize = std::min(bodySize, remainingInstructions); // body can't be bigger than remaining instructions
+
+				for (int j = 0; j < bodySize; j++) {
+					body.push_back(createRandomInstruction(pid, paddedName, variables, remainingInstructions));
 				}
 
-				case 2: //ADD
-				{
-					if (variables.size() >= 2) {
-						std::string dest = variables[rand() % variables.size()];
-						std::string var1 = variables[rand() % variables.size()]; // select a random variable from the list
-						std::string var2 = variables[rand() % variables.size()];
-						process->addInstruction(std::make_shared<AddInstruction>(pid, dest, var1, var2));
-					}
-					else if (variables.size() < 2)
-					{
-						std::string var = "var" + std::to_string(variables.size()); // create a new variable name sequentially
-						uint16_t value = rand() % 100; // random value between 0 and 99;
+				int maxRepeats = std::max(1, remainingInstructions / static_cast<int>(body.size()));
+				int repeats = rand() % 3 + 1; // random number of repeats between 1 and 3
+				repeats = std::min(repeats, maxRepeats); // make sure that repeated body can fit in the remaining number of instructions
 
-						variables.push_back(var); // add to list of variables
+				return std::make_shared<ForInstruction>(pid, body, repeats);
 
-						process->addInstruction(std::make_shared<DeclareInstruction>(pid, var, value));
+				break;
 
-					}
-					break;
-				}
-
-				case 3: //SUBTRACT
-				{
-					if (variables.size() >= 2) {
-						std::string dest = variables[rand() % variables.size()];
-						std::string var1 = variables[rand() % variables.size()]; // select a random variable from the list
-						std::string var2 = variables[rand() % variables.size()];
-						process->addInstruction(std::make_shared<SubtractInstruction>(pid, dest, var1, var2));
-					}
-					else if (variables.size() < 2)
-					{
-						std::string var = "var" + std::to_string(variables.size()); // create a new variable name sequentially
-						uint16_t value = rand() % 100; // random value between 0 and 99;
-
-						variables.push_back(var); // add to list of variables
-
-						process->addInstruction(std::make_shared<DeclareInstruction>(pid, var, value));
-
-					}
-					break;
-				}
-
-				case 4: //SLEEP
-				{
-					int sleepTicks = rand() % 5 + 1; // random sleep ticks between 1 and 5
-					process->addInstruction(std::make_shared<SleepInstruction>(pid, sleepTicks));
-					break;
-				}
-				
-				case 5: //FOR 
-				{
-					std::vector<std::shared_ptr<Instruction>> body;
-
-					int remainingInstructions = instructionCount - process->getTotalInstructions();
-					int bodySize = rand() % 3 + 1; // random body size between 1 and 3
-					bodySize = std::min(bodySize, remainingInstructions); // body can't be bigger than remaining instructions
-
-					for (int j = 0; j < bodySize; j++) {
-						int innerInstructionType = rand() % 3; // random instruction type for the body (0-2) - PRINT, ADD, SUBTRACT
-						switch (innerInstructionType) {
-							case 0: // PRINT
-							{
-								if (variables.empty() || rand() % 2 == 0) { //if no variables or 50% chance, print a message of hello world
-									body.push_back(std::make_shared<PrintInstruction>(pid, "Hello world from " + paddedName));
-								}
-								else
-								{
-									std::string varToPrint = variables[rand() % variables.size()];
-									body.push_back(std::make_shared<PrintInstruction>(pid, "Value of variable " + varToPrint + " is: " , varToPrint));
-								}
-								break;
-							}
-							case 1: // ADD
-							{
-								if (variables.size() >= 2) {
-									std::string dest = variables[rand() % variables.size()];
-									std::string var1 = variables[rand() % variables.size()];
-									std::string var2 = variables[rand() % variables.size()];
-									body.push_back(std::make_shared<AddInstruction>(pid, dest, var1, var2));
-								}
-								break;
-							}
-							case 2: // SUBTRACT
-							{
-								if (variables.size() >= 2) {
-									std::string dest = variables[rand() % variables.size()];
-									std::string var1 = variables[rand() % variables.size()];
-									std::string var2 = variables[rand() % variables.size()];
-									body.push_back(std::make_shared<SubtractInstruction>(pid, dest, var1, var2));
-								}
-								break;
-							}
-
-						
-						}
-
-
-
-					}
-
-					if (!body.empty()) {
-						int maxRepeats = std::max(1, remainingInstructions / static_cast<int>(body.size()));
-						int repeats = rand() % 3 + 1; // random number of repeats between 1 and 3
-						repeats = std::min(repeats, maxRepeats); // make sure that repeated body can fit in the remaining number of instructions
-
-						process->addInstruction(std::make_shared<ForInstruction>(pid, body, repeats));
-					}
-
-					break;
-
-				}
-				
 			}
 
 		}
 
-
-		return process;
+		return nullptr;
 	}
 
 

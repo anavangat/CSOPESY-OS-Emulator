@@ -9,11 +9,11 @@ class Instruction
 public:
 	enum InstructionType {
 		PRINT,
-		SLEEP,
-		FOR,
 		DECLARE,
 		ADD,
-		SUBTRACT
+		SUBTRACT,
+		SLEEP,
+		FOR
 	};
 	
 	Instruction(int pid, InstructionType type);
