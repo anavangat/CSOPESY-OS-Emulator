@@ -1,4 +1,5 @@
 #include "SubtractInstruction.h"
+#include "Process.h"
 
 
 SubtractInstruction::SubtractInstruction(int pid, const std::string& destVar, const std::string& srcVar1, const std::string& srcVar2)
@@ -27,4 +28,9 @@ void SubtractInstruction::execute(Process& process, SymbolTable& symbolTable) {
 	}
 
 	symbolTable.setVariable(destVar, static_cast<uint16_t>(result));
+
+	std::string logLine = destVar + " = " + srcVar1 + " (" + std::to_string(value1) + ") - " 
+                        + srcVar2 + " (" + std::to_string(value2) + ") is performed. " 
+                        + destVar + " is now " + std::to_string(result) + ".";
+    process.appendOutput(logLine);
 }
