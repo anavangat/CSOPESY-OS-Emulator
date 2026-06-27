@@ -137,6 +137,8 @@ protected:
 	int maxIns;
 	int delaysPerExec;
 
+	static const int maxForDepth = 3;
+
 	std::thread schedulerThread; // thread for scheduler
 	ReadyQueue readyQueue; // one ready queue for the scheduler
 
@@ -281,8 +283,9 @@ protected:
 	}
 
 
-	std::shared_ptr<Instruction> createRandomInstruction(int pid, const std::string& paddedName, std::vector<std::string>& variables, int remainingInstructions) {
-		int instructionType = rand() % 6; // random instruction type (0-5) - PRINT, SLEEP, ADD, SUBTRACT, FOR, DECLARE
+	std::shared_ptr<Instruction> createRandomInstruction(int pid, const std::string& paddedName, std::vector<std::string>& variables, int remainingInstructions, int depth = 0) {
+		int instructionTypeCount = (depth < maxForDepth) ? 6 : 5; // if depth < maxForDepth, allow FOR instruction, else only allow PRINT, SLEEP, ADD, SUBTRACT, DECLARE
+		int instructionType = rand() % instructionTypeCount; // random instruction type (0-5) - PRINT, SLEEP, ADD, SUBTRACT, FOR, DECLARE
 
 		switch (instructionType) {
 			case Instruction::PRINT:
@@ -361,7 +364,7 @@ protected:
 				bodySize = std::min(bodySize, remainingInstructions); // body can't be bigger than remaining instructions
 
 				for (int j = 0; j < bodySize; j++) {
-					body.push_back(createRandomInstruction(pid, paddedName, variables, remainingInstructions));
+					body.push_back(createRandomInstruction(pid, paddedName, variables, remainingInstructions, depth+1));
 				}
 
 				int maxRepeats = std::max(1, remainingInstructions / static_cast<int>(body.size()));
