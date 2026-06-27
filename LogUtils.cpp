@@ -55,8 +55,12 @@ void LogUtils::print_command(int tick, const Process& process, int core_id) {
     static std::unordered_set<std::string> initializedLogs;
 
     std::lock_guard<std::mutex> lock(logFileMutex); // serializes all log writes across worker threads
+    /**std::string rawLogMessage = getCurrentTimestamp() + " Core:" + std::to_string(core_id) +
+        " \"Hello world from " + process.getName() + "!\"";**/
+    std::vector<std::string> outputs = process.getOutput();
+    std::string dynamicInstructionTxt = !outputs.empty() ? outputs.back() : ("Hello world from " + process.getName() + "!");
     std::string rawLogMessage = getCurrentTimestamp() + " Core:" + std::to_string(core_id) +
-        " \"Hello world from " + process.getName() + "!\"";
+        " \"" + dynamicInstructionTxt + "\"";
 
     const_cast<Process&>(process).addInMemoryLog(tick, core_id, rawLogMessage); //added a LogEntry class soo probably need to change this part
 #if ENABLE_PROCESS_LOGGING
