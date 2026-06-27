@@ -33,8 +33,8 @@ void RR_Scheduler::workerLoop(int coreID) {
 		auto process = readyQueue.pop();
 		if (process == nullptr) break; // stop signal
 		
-		process->setState(Process::RUNNING);
 		process->setCoreID(coreID);
+		process->setState(Process::RUNNING);
 		int executedThisQuantum = 0;
 		bool wentToSleep = false;
 
@@ -76,6 +76,7 @@ void RR_Scheduler::workerLoop(int coreID) {
 			process->setState(Process::FINISHED);
 		}
 		else if (!wentToSleep) {
+			process->setCoreID(-1);
 			process->setState(Process::READY);
 			readyQueue.push(process); // re-enqueue the process for the next round
 		}

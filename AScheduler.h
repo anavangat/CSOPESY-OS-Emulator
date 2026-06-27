@@ -169,8 +169,8 @@ protected:
 			auto process = readyQueue.pop();
 			if (process == nullptr) break; // stop signal
 
-			process->setState(Process::RUNNING);
 			process->setCoreID(coreID);
+			process->setState(Process::RUNNING);
 			while (running && !process->isFinished()) {
 				auto instruction = process->getCurrentInstruction();
 				process->executeCurrentInstruction();
