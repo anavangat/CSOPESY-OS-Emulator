@@ -43,3 +43,21 @@ void ForInstruction::flatten(const std::shared_ptr<Instruction>& instruction, st
 	}
 }
 
+int ForInstruction::flattenedSize(const std::shared_ptr<Instruction>& instruction) {
+	if (!instruction) {
+		return 0;
+	}
+	if (instruction->getInstructionType() == Instruction::FOR) {
+		auto forInstruction = std::dynamic_pointer_cast<ForInstruction>(instruction);
+		if (!forInstruction) return 0;
+		int bodySize = 0;
+		if (forInstruction) {
+			for (const auto& innerInstruction : forInstruction->getBody()) {
+				bodySize += flattenedSize(innerInstruction);
+			}
+			return bodySize * forInstruction->getRepeats();
+		}
+	}
+	return 1;
+}
+

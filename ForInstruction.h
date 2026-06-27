@@ -13,6 +13,7 @@ public:
 	int getRepeats() const;
 
 	static void flatten(const std::shared_ptr<Instruction>& instruction, std::vector < std::shared_ptr<Instruction>>& out);
+	static int flattenedSize(const std::shared_ptr<Instruction>& instruction);
 
 private:
 	std::vector<std::shared_ptr<Instruction>> body;

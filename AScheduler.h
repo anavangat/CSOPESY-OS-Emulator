@@ -363,11 +363,17 @@ protected:
 				int bodySize = rand() % 3 + 1; // random body size between 1 and 3
 				bodySize = std::min(bodySize, remainingInstructions); // body can't be bigger than remaining instructions
 
+				int bodyFlattenedSize = 0;
 				for (int j = 0; j < bodySize; j++) {
-					body.push_back(createRandomInstruction(pid, paddedName, variables, remainingInstructions, depth+1));
+					int childBudget = remainingInstructions - bodyFlattenedSize;
+					if (childBudget < 1) break; // cant have more instructions
+
+					auto child = createRandomInstruction(pid, paddedName, variables, childBudget, depth + 1);
+					body.push_back(child);
+					bodyFlattenedSize += ForInstruction::flattenedSize(child);
 				}
 
-				int maxRepeats = std::max(1, remainingInstructions / static_cast<int>(body.size()));
+				int maxRepeats = std::max(1, remainingInstructions / std::max(1, bodyFlattenedSize));
 				int repeats = rand() % 3 + 1; // random number of repeats between 1 and 3
 				repeats = std::min(repeats, maxRepeats); // make sure that repeated body can fit in the remaining number of instructions
 
