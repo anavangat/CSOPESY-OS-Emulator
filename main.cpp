@@ -58,7 +58,10 @@ Config parseConfig(const std::string& path) {
 		}
 		else if (key == "scheduler") {
 			std::string val; ss >> val;
-			if (val == "fcfs" || val == "rr") cfg.scheduler = val;
+			if (val == "\"fcfs\"" || val == "\"rr\"") {
+				val = val.substr(1, val.length() - 2);
+				cfg.scheduler = val;
+			}
 			else std::cout << "scheduler invalid (expected 'fcfs' or 'rr'). Using: " << cfg.scheduler << std::endl;
 		}
 		else if (key == "quantum-cycles") {
