@@ -232,8 +232,8 @@ int main() {
 		}
 		else if (cmd == "screen") {
 			if (arg == "-ls") {
-				std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
-				std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
+				auto runningProcesses = scheduler->getRunningSnapshot();
+				auto finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
 				LogUtils::printScreenList(std::cout, scheduler->getNumCpu(), runningProcesses, finishedProcesses);
 				std::cout << "---------------------------------------------\n" << std::endl;
 			}
@@ -289,8 +289,8 @@ int main() {
 		}
 		else if (cmd == "report-util") {
 			std::cout << "Generating execution report..." << std::endl;
-			std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
-			std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
+			auto runningProcesses = scheduler->getRunningSnapshot();
+			auto finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
 			LogUtils::dump_emulator_log(scheduler->getNumCpu(), runningProcesses, finishedProcesses);
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}

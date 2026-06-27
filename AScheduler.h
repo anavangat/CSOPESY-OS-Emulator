@@ -91,6 +91,17 @@ public:
 		return result;
 	}
 
+	std::vector<std::pair<std::shared_ptr<Process>, int>> getRunningSnapshot() {
+		std::vector<std::pair<std::shared_ptr<Process>, int>> result;
+		std::lock_guard<std::mutex> lock(allProcessesMutex);
+		for (const auto& process : allProcesses) {
+			if (process->getState() == Process::RUNNING) {
+				result.emplace_back(process, process->getCoreID());
+			}
+		}
+		return result;
+	}
+
 	// Resolves a process by name for "screen -r". Returns nullptr if no such name exists.
 	std::shared_ptr<Process> getProcessByName(const std::string& name) {
 		std::lock_guard<std::mutex> lock(allProcessesMutex);
@@ -188,8 +199,8 @@ protected:
 				process->moveToNextInstruction();
 
 				if (isSleep) {
-					process->setCoreID(-1);
 					process->setState(Process::WAITING);
+					process->setCoreID(-1);
 					process->setWakeUpTick(cpuTick.load() + sleepTicks);
 					{
 						std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
@@ -202,6 +213,7 @@ protected:
 				while (cpuTick.load() - waitStartTick < delaysPerExec) {
 					 // wait for delaysPerExec ticks
 				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(1)); // for race condition
 			}
 			if (process->isFinished()) {
 				process->setState(Process::FINISHED);

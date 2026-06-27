@@ -56,8 +56,8 @@ void RR_Scheduler::workerLoop(int coreID) {
 			executedThisQuantum++;
 
 			if (isSleep) {
-				process->setCoreID(-1);
 				process->setState(Process::WAITING);
+				process->setCoreID(-1);
 				process->setWakeUpTick(cpuTick.load() + sleepTicks);
 				{
 					std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
@@ -71,13 +71,14 @@ void RR_Scheduler::workerLoop(int coreID) {
 			while (cpuTick.load() - waitStartTick < delaysPerExec) {
 				// wait for delaysPerExec ticks
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // for race condition
 		}
 		if (process->isFinished()) {
 			process->setState(Process::FINISHED);
 		}
 		else if (!wentToSleep) {
-			process->setCoreID(-1);
 			process->setState(Process::READY);
+			process->setCoreID(-1);
 			readyQueue.push(process); // re-enqueue the process for the next round
 		}
 	}

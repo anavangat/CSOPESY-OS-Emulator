@@ -54,7 +54,7 @@ public:
 
 private:
 	int pid;
-	int coreID; //Assigned core ID, -1 if not assigned
+	std::atomic<int> coreID; //Assigned core ID, -1 if not assigned
 	std::string name;
 
 	std::atomic<ProcessState> state;

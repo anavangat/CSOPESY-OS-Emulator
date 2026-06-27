@@ -86,7 +86,7 @@ void LogUtils::print_command(int tick, const Process& process, int core_id) {
 #endif
 }
 
-void LogUtils::printProcessLine(std::ostream& os, const std::shared_ptr<Process>& p) {
+void LogUtils::printProcessLine(std::ostream& os, const std::shared_ptr<Process>& p, bool isFinished, int coreID) {
     if (!p) return;
 
     const int total = p->getTotalInstructions();
@@ -96,18 +96,18 @@ void LogUtils::printProcessLine(std::ostream& os, const std::shared_ptr<Process>
     os << std::left << std::setw(13) << p->getName()
         << std::setw(26) << formatTimestamp(p->getArrivalTime());
 
-    if (p->getState() == Process::FINISHED) {
+    if (isFinished) {
         os << std::left << std::setw(11) << "Finished";
     }
     else {
-        os << std::left << std::setw(11) << ("Core: " + std::to_string(p->getCoreID()));
+        os << std::left << std::setw(11) << ("Core: " + std::to_string(coreID));
     }
 
     os << executed << " / " << total << std::endl;
 }
 
 void LogUtils::printScreenList(std::ostream& os, int numCpu,
-    const std::vector<std::shared_ptr<Process>>& running,
+    const std::vector<std::pair<std::shared_ptr<Process>, int>>& running,
     const std::vector<std::shared_ptr<Process>>& finished) {
     
     const int coresUsed = static_cast<int>(running.size());
@@ -123,19 +123,19 @@ void LogUtils::printScreenList(std::ostream& os, int numCpu,
     os << std::endl << std::string(45, '-') << std::endl;
 
     os << "Running processes:" << std::endl;
-    for (const auto& p : running) {
-        printProcessLine(os, p);
+    for (const auto& [p, coreID] : running) {       // structured binding: process + captured coreID
+        printProcessLine(os, p, false, coreID);      // coreID is from snapshot time, never live
     }
     os << std::endl;
 
     os << "Finished processes:" << std::endl;
     for (const auto& p : finished) {
-        printProcessLine(os, p);
+        printProcessLine(os, p, true, -1);           // coreID unused for finished rows
     }
 
 }
 
-void LogUtils::dump_emulator_log(int numCpu, const std::vector<std::shared_ptr<Process>>& running,
+void LogUtils::dump_emulator_log(int numCpu, const  const std::vector<std::pair<std::shared_ptr<Process>, int>>& running,
                                  const std::vector<std::shared_ptr<Process>>& finished) {
     std::ofstream logFile("csopesy-log.txt");
     if (!logFile.is_open()) {
