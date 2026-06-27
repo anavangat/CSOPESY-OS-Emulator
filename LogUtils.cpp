@@ -135,24 +135,35 @@ void LogUtils::printProcessLine(std::ostream& os, const std::shared_ptr<Process>
     os << executed << " / " << total << std::endl;**/
 }
 
-void LogUtils::printScreenList(std::ostream& os,
+void LogUtils::printScreenList(std::ostream& os, int numCpu,
     const std::vector<std::shared_ptr<Process>>& running,
     const std::vector<std::shared_ptr<Process>>& finished) {
     
-    os << std::left << std::setw(15) << "Process Name"
-       << std::setw(25) << "Arrival Time"
-       << std::setw(12) << "Status"
-       << std::setw(15) << "Instructions"
-       << "Core" << std::endl;
-    os << std::string(75, '-') << std::endl;
+    const int coresUsed = static_cast<int>(running.size());
+    int coresAvailable = numCpu - coresUsed;
+    if (coresAvailable < 0) coresAvailable = 0;
+    const double cpuUtil = (numCpu > 0)
+        ? (static_cast<double>(coresUsed) / numCpu) * 100.0 : 0.0;
 
-    for (const auto& p : running) {
-        printProcessLine(os, p);
-    }
-    for (const auto& p : finished) {
-        printProcessLine(os, p);
-    }
-    /**    os << std::string(45, '-') << std::endl;
+    os << "CPU utilization: " << std::fixed << std::setprecision(2) << cpuUtil << "%" << std::endl;
+    os << "Cores used: " << coresUsed << std::endl;
+    os << "Cores available: " << coresAvailable << std::endl;
+
+    //os << std::left << std::setw(15) << "Process Name"
+    //   << std::setw(25) << "Arrival Time"
+    //   << std::setw(12) << "Status"
+    //   << std::setw(15) << "Instructions"
+    //   << "Core" << std::endl;
+    //os << std::string(75, '-') << std::endl;
+
+    //for (const auto& p : running) {
+    //    printProcessLine(os, p);
+    //}
+    //for (const auto& p : finished) {
+    //    printProcessLine(os, p);
+    //}
+    
+    os << std::endl << std::string(45, '-') << std::endl;
 
     os << "Running processes:" << std::endl;
     for (const auto& p : running) {
@@ -163,40 +174,61 @@ void LogUtils::printScreenList(std::ostream& os,
     os << "Finished processes:" << std::endl;
     for (const auto& p : finished) {
         printProcessLine(os, p);
-    }**/
+    }
 
 }
 
-void LogUtils::dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running,
-    const std::vector<std::shared_ptr<Process>>& finished) {
+//void LogUtils::dump_emulator_log(int numCpu, const std::vector<std::shared_ptr<Process>>& running,
+//    const std::vector<std::shared_ptr<Process>>& finished) {
+//    std::ofstream logFile("csopesy-log.txt");
+//    if (!logFile.is_open()) {
+//        std::cerr << "Error: Could not create csopesy-log.txt" << std::endl;
+//        return;
+//    }
+//
+//    size_t activeCoresCount = running.size();
+//    
+//    int maxCoreIDFound = -1;
+//    for (const auto& p : running) {
+//        if (p->getCoreID() > maxCoreIDFound) maxCoreIDFound = p->getCoreID();
+//    }
+//
+//    int estimatedTotalCores = (maxCoreIDFound >= 4) ? maxCoreIDFound + 1 : 4; 
+//    int availableCores = estimatedTotalCores - static_cast<int>(activeCoresCount);
+//    if (availableCores < 0) availableCores = 0;
+//
+//    double cpuUtilization = (static_cast<double>(activeCoresCount) / estimatedTotalCores) * 100.0;
+//
+//    logFile << "CSOPESY Emulator Execution Report" << std::endl;
+//    logFile << "Generated on: " << getCurrentTimestamp() << std::endl;
+//    logFile << std::string (75, '-') << std::endl;
+//
+//    logFile << "CPU Utilization: " << std::fixed << std::setprecision(2) << cpuUtilization << "%" << std::endl;
+//    logFile << "Core Used: " << activeCoresCount << " | Cores Available: " << availableCores <<std::endl;
+//    logFile << std::string (75, '-') << std::endl;
+//    
+//    printScreenList(logFile, running, finished);
+//
+//    logFile.close();
+//    std::cout << "Report generated: csopesy-log.txt" << std::endl;
+//}
+//
+//}
+
+void LogUtils::dump_emulator_log(int numCpu, const std::vector<std::shared_ptr<Process>>& running,
+                                 const std::vector<std::shared_ptr<Process>>& finished) {
     std::ofstream logFile("csopesy-log.txt");
     if (!logFile.is_open()) {
         std::cerr << "Error: Could not create csopesy-log.txt" << std::endl;
         return;
     }
 
-    size_t activeCoresCount = running.size();
-    
-    int maxCoreIDFound = -1;
-    for (const auto& p : running) {
-        if (p->getCoreID() > maxCoreIDFound) maxCoreIDFound = p->getCoreID();
-    }
-
-    int estimatedTotalCores = (maxCoreIDFound >= 4) ? maxCoreIDFound + 1 : 4; 
-    int availableCores = estimatedTotalCores - static_cast<int>(activeCoresCount);
-    if (availableCores < 0) availableCores = 0;
-
-    double cpuUtilization = (static_cast<double>(activeCoresCount) / estimatedTotalCores) * 100.0;
-
     logFile << "CSOPESY Emulator Execution Report" << std::endl;
     logFile << "Generated on: " << getCurrentTimestamp() << std::endl;
-    logFile << std::string (75, '-') << std::endl;
+    logFile << std::string(75, '-') << std::endl;
 
-    logFile << "CPU Utilization: " << std::fixed << std::setprecision(2) << cpuUtilization << "%" << std::endl;
-    logFile << "Core Used: " << activeCoresCount << " | Cores Available: " << availableCores <<std::endl;
-    logFile << std::string (75, '-') << std::endl;
-    
-    printScreenList(logFile, running, finished);
+    // Same formatter as "screen -ls" so the file and console views stay identical.
+    printScreenList(logFile, numCpu, running, finished);
 
     logFile.close();
     std::cout << "Report generated: csopesy-log.txt" << std::endl;

@@ -19,13 +19,14 @@ public:
 
     // Writes the "screen -ls" style Running/Finished report to csopesy-log.txt.
 
-    static void dump_emulator_log(const std::vector<std::shared_ptr<Process>>& running,
+    static void dump_emulator_log(int numCpu,
+                                  const std::vector<std::shared_ptr<Process>>& running,
                                   const std::vector<std::shared_ptr<Process>>& finished);
 
     // Shared formatter used by both "screen -ls" (console, via std::cout) and
     // "report-util" (file, via an ofstream) so the two stay visually identical.
 
-    static void printScreenList(std::ostream& os,
+    static void printScreenList(std::ostream& os, int numCpu,
                                 const std::vector<std::shared_ptr<Process>>& running,
                                 const std::vector<std::shared_ptr<Process>>& finished);
 

@@ -107,6 +107,54 @@ Config parseConfig(const std::string& path) {
 	return cfg;
 }
 
+// Renders the "process-smi" view for one process inside its screen.
+void printProcessSmi(const std::shared_ptr<Process>& process) {
+	std::cout << "Process name: " << process->getName() << std::endl;
+	std::cout << "ID: " << process->getPid() << std::endl;
+	std::cout << "Logs:" << std::endl;
+
+	const auto logs = process->getInMemoryLogs(); // returns a mutex-locked copy; safe to iterate
+	for (const auto& entry : logs) {
+		std::cout << entry.getEvent() << std::endl;
+	}
+	std::cout << std::endl;
+
+	if (process->isFinished()) {
+		std::cout << "Finished!" << std::endl;
+	}
+	else {
+		const int total = process->getTotalInstructions();
+		const int executed = total - process->getRemainingInstructions(); // == program counter
+		std::cout << "Current instruction line: " << executed << std::endl;
+		std::cout << "Lines of code: " << total << std::endl;
+	}
+	std::cout << std::endl;
+}
+
+// Takes over input until the user types "exit", emulating attaching to a process screen.
+void runProcessScreen(const std::shared_ptr<Process>& process) {
+	system("cls");
+	std::cout << "Attached to process: " << process->getName() << "\n" << std::endl;
+	printProcessSmi(process);
+
+	std::string input;
+	while (true) {
+		std::cout << "root:\\> ";
+		if (!std::getline(std::cin, input)) break; // EOF safety
+
+		if (input == "process-smi") {
+			printProcessSmi(process);
+		}
+		else if (input == "exit") {
+			break; // return to the main menu
+		}
+		else {
+			std::cout << "Command not recognized inside screen. Available: process-smi, exit\n" << std::endl;
+		}
+	}
+	system("cls");
+}
+
 int main() {
 	std::string command;
 	bool initialized = false;
@@ -117,7 +165,8 @@ int main() {
 	std::thread cpuTickThread([&cpuTick]() {
 		while (true) {
 			cpuTick++;
-			//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1 tick = 1ms
+			// Change
+			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1 tick = 1ms
 		}
 	});
 
@@ -182,13 +231,50 @@ int main() {
 			if (arg == "-ls") {
 				std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
 				std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
-				LogUtils::printScreenList(std::cout, runningProcesses, finishedProcesses);
+				LogUtils::printScreenList(std::cout, scheduler->getNumCpu(), runningProcesses, finishedProcesses);
+				std::cout << "---------------------------------------------\n" << std::endl;
+			}
+			else if (arg == "-s") {
+				std::string name = tokens.size() > 2 ? tokens[2] : "";
+				if (name.empty()) {
+					std::cout << "Usage: screen -s <process name>" << std::endl;
+					std::cout << "---------------------------------------------\n" << std::endl;
+				}
+				else {
+					auto process = scheduler->createUserProcess(name);
+					if (!process) {
+						std::cout << "Process " << name << " already exists." << std::endl;
+						std::cout << "---------------------------------------------\n" << std::endl;
+					}
+					else {
+						runProcessScreen(process); // blocks until the user types "exit"
+						printHeader();             // redraw main menu in the same window
+					}
+				}
+			}
+			else if (arg == "-r") {
+				std::string name = tokens.size() > 2 ? tokens[2] : "";
+				if (name.empty()) {
+					std::cout << "Usage: screen -r <process name>" << std::endl;
+					std::cout << "---------------------------------------------\n" << std::endl;
+				}
+				else {
+					auto process = scheduler->getProcessByName(name);
+					// Spec: a finished process is treated identically to a missing one.
+					if (!process || process->getState() == Process::FINISHED) {
+						std::cout << "Process " << name << " not found." << std::endl;
+						std::cout << "---------------------------------------------\n" << std::endl;
+					}
+					else {
+						runProcessScreen(process);
+						printHeader();
+					}
+				}
 			}
 			else {
-				// "screen -s <name>" / "screen -r <name>" are not part of this milestone.
-				std::cout << "Screen command recognized. Doing something....." << std::endl;
+				std::cout << "Unknown screen option. Use: screen -s <name>, screen -r <name>, or screen -ls." << std::endl;
+				std::cout << "---------------------------------------------\n" << std::endl;
 			}
-			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (cmd == "scheduler-start") {
 			scheduler->startDummyProcessGeneration();
@@ -202,7 +288,7 @@ int main() {
 			std::cout << "Generating execution report..." << std::endl;
 			std::vector<std::shared_ptr<Process>> runningProcesses = scheduler->getProcessesByState(Process::ProcessState::RUNNING);
 			std::vector<std::shared_ptr<Process>> finishedProcesses = scheduler->getProcessesByState(Process::ProcessState::FINISHED);
-			LogUtils::dump_emulator_log(runningProcesses, finishedProcesses);
+			LogUtils::dump_emulator_log(scheduler->getNumCpu(), runningProcesses, finishedProcesses);
 			std::cout << "---------------------------------------------\n" << std::endl;
 		}
 		else if (cmd == "clear") {

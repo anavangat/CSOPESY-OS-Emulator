@@ -10,6 +10,6 @@ void DeclareInstruction::execute(Process& process, SymbolTable& symbolTable) {
 		symbolTable.setVariable(variableName, initialValue);
 	}
 	else {
-		throw std::runtime_error("Variable '" + variableName + "' already declared."); //throw error if declared a variable that already exists
+		//throw std::runtime_error("Variable '" + variableName + "' already declared."); //throw error if declared a variable that already exists
 	}
 }

@@ -91,6 +91,41 @@ public:
 		return result;
 	}
 
+	// Resolves a process by name for "screen -r". Returns nullptr if no such name exists.
+	std::shared_ptr<Process> getProcessByName(const std::string& name) {
+		std::lock_guard<std::mutex> lock(allProcessesMutex);
+		for (const auto& process : allProcesses) {
+			if (process->getName() == name) {
+				return process;
+			}
+		}
+		return nullptr;
+	}
+
+	int getNumCpu() const {
+		return numCpu;
+	}
+
+	std::shared_ptr<Process> createUserProcess(const std::string& name) {
+		int newPid = pid++;
+		auto process = std::make_shared<Process>(newPid, name, std::time(nullptr));
+
+		int instructionCount = rand() % (maxIns - minIns + 1) + minIns;
+		std::vector<std::string> variables;
+		while (process->getTotalInstructions() < instructionCount) {
+			int remaining = instructionCount - process->getTotalInstructions();
+			process->addInstruction(createRandomInstruction(newPid, name, variables, remaining));
+		}
+
+		std::lock_guard<std::mutex> lock(allProcessesMutex);
+		for (const auto& existing : allProcesses) {
+			if (existing->getName() == name) {
+				return nullptr; // duplicate name; do not register
+			}
+		}
+		allProcesses.push_back(process);
+		return process;
+	}
 
 protected:
 	std::atomic<int>& cpuTick;
@@ -110,7 +145,8 @@ protected:
 
 	//  flag for generating processes
 	std::atomic<bool> generationEnabled{ false };
-	int pid = 1; // PID counter for generating unique PIDs for dummy processes
+	//int pid = 1; // PID counter for generating unique PIDs for dummy processes
+	std::atomic<int> pid{ 1 }; // PID counter (atomic: shared by generator thread and screen -s)
 
 	std::thread dummyProcessGeneratorThread; // thread for generating dummy processes
 
