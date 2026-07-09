@@ -27,7 +27,7 @@ public:
 	}
 	virtual ~AScheduler() = default;
 
-	void start() {
+	virtual void start() {
 		// create thread for scheduler
 		schedulerThread = std::thread(&AScheduler::schedulerLoop, this);
 
@@ -40,7 +40,7 @@ public:
 		sleepWakeThread = std::thread(&AScheduler::sleepWakeLoop, this);
 	}
 
-	void stop() {
+	virtual void stop() {
 		if (generationEnabled) {
 			stopDummyProcessGeneration();
 		}

@@ -8,6 +8,22 @@
 #include <vector>
 #include <mutex>
 #include <memory>
+#include <fstream>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
+void RR_Scheduler::start() {
+	AScheduler::start();
+	memorySnapshotThread = std::thread(&RR_Scheduler::memorySnapshotLoop, this);
+}
+
+void RR_Scheduler::stop() {
+	AScheduler::stop();
+	if (memorySnapshotThread.joinable()) {
+		memorySnapshotThread.join();
+	}
+}
 
 void RR_Scheduler::schedulerLoop() {
 	size_t nextToEnqueue = 0; // index of the next not-yet-queued process in allProcesses
@@ -32,6 +48,13 @@ void RR_Scheduler::workerLoop(int coreID) {
 	while (running) {
 		auto process = readyQueue.pop();
 		if (process == nullptr) break; // stop signal
+
+		if (!memoryAllocator.isAllocated(process->getPid())) {
+			if (!memoryAllocator.allocate(process->getPid())) {
+				readyQueue.push(process);
+				continue; // skip this process and move to the next one
+			}
+		}
 		
 		process->setCoreID(coreID);
 		process->setState(Process::RUNNING);
@@ -74,6 +97,7 @@ void RR_Scheduler::workerLoop(int coreID) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // for race condition
 		}
 		if (process->isFinished()) {
+			memoryAllocator.deallocate(process->getPid());
 			process->setState(Process::FINISHED);
 		}
 		else if (!wentToSleep) {
@@ -81,5 +105,25 @@ void RR_Scheduler::workerLoop(int coreID) {
 			process->setCoreID(-1);
 			readyQueue.push(process); // re-enqueue the process for the next round
 		}
+	}
+}
+
+void RR_Scheduler::memorySnapshotLoop() {
+	int lastSnapshotTick = cpuTick.load();
+
+	while (running) {
+		if (cpuTick.load() - lastSnapshotTick >= quantum) {
+			snapshotCounter++;
+			int qq = snapshotCounter.load();
+
+			std::ofstream outFile("memory_stamp_" + std::to_string(qq) + ".txt");
+			if (outFile.is_open()) {
+				outFile << memoryAllocator.generateMemoryStamp(LogUtils::getCurrentTimestamp());
+				outFile.close();
+			}
+
+			lastSnapshotTick = cpuTick.load();
+		}
+		//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // avoid busy-spinning
 	}
 }
