@@ -17,22 +17,6 @@ std::mutex logFileMutex;
 
 namespace {
 
-    // Current wall-clock time, used for each PRINT log line: (MM/DD/YYYY HH:MM:SSam/pm)
-    std::string getCurrentTimestamp() {
-        auto now = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-        std::tm now_tm{};
-
-        std::tm* ltm = std::localtime(&now_c);
-        if (ltm) {
-            now_tm = *ltm;
-        }
-
-        char buf[100];
-        std::strftime(buf, sizeof(buf), "(%m/%d/%Y %I:%M:%S%p)", &now_tm);
-        return std::string(buf);
-    }
-
     // Same format, but for a stored std::time_t (used for a process's arrival time
     // in screen -ls / report-util, rather than "now").
     std::string formatTimestamp(std::time_t t) {
@@ -47,6 +31,22 @@ namespace {
     }
 
 } // namespace
+
+// Current wall-clock time, used for each PRINT log line: (MM/DD/YYYY HH:MM:SSam/pm)
+std::string LogUtils::getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm now_tm{};
+
+    std::tm* ltm = std::localtime(&now_c);
+    if (ltm) {
+        now_tm = *ltm;
+    }
+
+    char buf[100];
+    std::strftime(buf, sizeof(buf), "(%m/%d/%Y %I:%M:%S%p)", &now_tm);
+    return std::string(buf);
+}
 
 void LogUtils::print_command(int tick, const Process& process, int core_id) {
     // Tracks which processes (by name) already had their header written THIS run,

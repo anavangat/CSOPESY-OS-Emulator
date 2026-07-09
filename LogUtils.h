@@ -13,6 +13,8 @@
 class LogUtils {
 public:
 
+    static std::string getCurrentTimestamp();
+
     //Format: (MM/DD/YYYY HH:MM:SSam/pm) Core:N "Hello world from <name>!"
 
     static void print_command(int tick, const Process& process, int core_id);
