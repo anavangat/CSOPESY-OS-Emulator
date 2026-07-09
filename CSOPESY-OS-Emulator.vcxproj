@@ -139,6 +139,7 @@
     <ClCompile Include="Instruction.cpp" />
     <ClCompile Include="LogEntry.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MemoryAllocator.cpp" />
     <ClCompile Include="PrintInstruction.cpp" />
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="ReadyQueue.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="ForInstruction.h" />
     <ClInclude Include="Instruction.h" />
     <ClInclude Include="LogEntry.h" />
+    <ClInclude Include="MemoryAllocator.h" />
     <ClInclude Include="PrintInstruction.h" />
     <ClInclude Include="Process.h" />
     <ClInclude Include="ReadyQueue.h" />

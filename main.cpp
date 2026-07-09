@@ -197,10 +197,10 @@ int main() {
 				cfgLoaded = true;
 
 				if (cfg.scheduler == "fcfs") {
-					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick);
+					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, 16384, 16, 4096); //NOTE: REPLACE THE INTS WITH THE VALUES IN CONFIG
 				}
 				else if (cfg.scheduler == "rr") {
-					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.quantumCycles);
+					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.quantumCycles, 16384, 16, 4096);
 				}
 				scheduler->start();
 

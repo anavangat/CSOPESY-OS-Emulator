@@ -110,3 +110,8 @@ void Process::setWakeUpTick(int tick) {
 int Process::getWakeUpTick() const {
 	return wakeUpTick;
 }
+
+int Process::getMemoryRequired() const
+{
+	return memoryRequired;
+}

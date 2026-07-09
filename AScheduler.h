@@ -17,12 +17,13 @@
 #include "SubtractInstruction.h"
 #include "SleepInstruction.h"
 #include "ForInstruction.h"
+#include "MemoryAllocator.h"
 
 class AScheduler
 {
 public:
-	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec, std::atomic<int>& cpuTick)
-		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick) {
+	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec, std::atomic<int>& cpuTick, int maxOverallMem, int memPerFrame, int memPerProc)
+		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick), memoryAllocator(maxOverallMem, memPerFrame, memPerProc), memPerProc(memPerProc){
 	}
 	virtual ~AScheduler() = default;
 
@@ -119,7 +120,7 @@ public:
 
 	std::shared_ptr<Process> createUserProcess(const std::string& name) {
 		int newPid = pid++;
-		auto process = std::make_shared<Process>(newPid, name, std::time(nullptr));
+		auto process = std::make_shared<Process>(newPid, name, std::time(nullptr), memPerProc);
 
 		int instructionCount = rand() % (maxIns - minIns + 1) + minIns;
 		std::vector<std::string> variables;
@@ -140,6 +141,10 @@ public:
 
 protected:
 	std::atomic<int>& cpuTick;
+
+	MemoryAllocator memoryAllocator; // memory allocator for processes
+	int memPerProc; // memory required per process
+
 
 	// config vars
 	int numCpu;
@@ -273,7 +278,7 @@ protected:
 		/**std::string n = std::to_string(pid);
 		std::string name = "Process" + n;**/
 
-		auto process = std::make_shared<Process>(pid, paddedName, std::time(nullptr)); 
+		auto process = std::make_shared<Process>(pid, paddedName, std::time(nullptr), memPerProc); 
 
 		// generate instructions and add to process
 		int instructionCount = rand() % (maxIns - minIns + 1) + minIns; // random number of instructions between minIns and maxIns

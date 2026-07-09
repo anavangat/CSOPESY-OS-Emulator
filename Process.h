@@ -20,8 +20,8 @@ public:
 		FINISHED
 	};
 
-	Process(int pid, const std::string& name, std::time_t arrivalTime) : 
-		pid(pid), name(name), state(READY), programCounter(0), coreID(-1), arrivalTime(arrivalTime),
+	Process(int pid, const std::string& name, std::time_t arrivalTime, int memoryRequired) : 
+		pid(pid), name(name), state(READY), programCounter(0), coreID(-1), arrivalTime(arrivalTime), memoryRequired(memoryRequired),
 		totalInstructions(0) {}
 
 	int getPid() const;
@@ -50,7 +50,7 @@ public:
 	void appendOutput(const std::string& output);
 	std::vector<std::string> getOutput() const;
 
-
+	int getMemoryRequired() const;
 
 private:
 	int pid;
@@ -72,4 +72,6 @@ private:
 	mutable std::mutex outputMutex; // Mutex to protect access to outputBuffer
 
 	SymbolTable symbolTable;
+
+	int memoryRequired;
 };
