@@ -34,6 +34,9 @@ struct Config {
 	uint32_t minIns = 1000;
 	uint32_t maxIns = 2000;
 	uint32_t delaysPerExec = 0;
+	uint32_t maxOverallMem = 16384;
+	uint32_t memPerFrame = 16;
+	uint32_t memPerProc = 4096;
 };
 
 // Read and parse config.txt. Returns true if file loaded (even if some values invalid/defaulted).
@@ -89,6 +92,21 @@ Config parseConfig(const std::string& path) {
 			if (v <= std::numeric_limits<uint32_t>::max()) cfg.delaysPerExec = static_cast<uint32_t>(v);
 			else std::cout << "delays-per-exec out of range. Using: " << cfg.delaysPerExec << std::endl;
 		}
+		else if (key == "max-overall-mem") {
+			uint64_t v=0; ss >> v;
+			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.maxOverallMem = static_cast<uint32_t>(v);
+			else std::cout << "max-overall-mem out of range. Using: " << cfg.maxOverallMem << std::endl;
+		}
+		else if (key == "mem-per-frame") {
+			uint64_t v=0; ss >> v;
+			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.memPerFrame = static_cast<uint32_t>(v);
+			else std::cout << "mem-per-frame out of range. Using: " << cfg.memPerFrame << std::endl;
+		}
+		else if (key == "mem-per-proc") {
+			uint64_t v=0; ss >> v;
+			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.memPerProc = static_cast<uint32_t>(v);
+			else std::cout << "mem-per-proc out of range. Using: " << cfg.memPerProc << std::endl;
+		}
 		// ignore unknown keys
 	}
 
@@ -96,6 +114,36 @@ Config parseConfig(const std::string& path) {
 	if (cfg.minIns > cfg.maxIns) {
 		std::cout << "min-ins > max-ins, swapping values." << std::endl;
 		std::swap(cfg.minIns, cfg.maxIns);
+	}
+
+	bool memConfigValid = true;
+
+	if (cfg.memPerFrame == 0) {
+		std::cout << "mem-per-frame is 0; cannot compute frame counts." << std::endl;
+		memConfigValid = false;
+	}
+	else {
+		if (cfg.memPerProc % cfg.memPerFrame != 0) {
+			std::cout << "mem-per-proc is not a multiple of mem-per-frame; a process could not be represented as a whole number of frames." << std::endl;
+			memConfigValid = false;
+		}
+		if (cfg.maxOverallMem % cfg.memPerFrame != 0) {
+			std::cout << "max-overall-mem is not a multiple of mem-per-frame; the remainder would be unaddressable." << std::endl;
+			memConfigValid = false;
+		}
+	}
+
+	if (cfg.memPerProc > cfg.maxOverallMem) {
+		std::cout << "mem-per-proc (" << cfg.memPerProc << ") exceeds max-overall-mem (" << cfg.maxOverallMem
+		           << "); no process could ever be allocated." << std::endl;
+		memConfigValid = false;
+	}
+
+	if (!memConfigValid) {
+		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 16, mem-per-proc 4096." << std::endl;
+		cfg.maxOverallMem = 16384;
+		cfg.memPerFrame = 16;
+		cfg.memPerProc = 4096;
 	}
 
 	std::cout << "Loaded configuration:" << std::endl;
@@ -106,7 +154,10 @@ Config parseConfig(const std::string& path) {
 	std::cout << "  min-ins: " << cfg.minIns << std::endl;
 	std::cout << "  max-ins: " << cfg.maxIns << std::endl;
 	std::cout << "  delays-per-exec: " << cfg.delaysPerExec << std::endl;
-
+	std::cout << "  max-overall-mem: " << cfg.maxOverallMem << std::endl;
+	std::cout << "  mem-per-frame: " << cfg.memPerFrame << std::endl;
+	std::cout << "  mem-per-proc: " << cfg.memPerProc << std::endl;
+	
 	return cfg;
 }
 
@@ -197,11 +248,12 @@ int main() {
 				cfgLoaded = true;
 
 				if (cfg.scheduler == "fcfs") {
-					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, 16384, 16, 4096); //NOTE: REPLACE THE INTS WITH THE VALUES IN CONFIG
+					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.maxOverallMem, cfg.memPerFrame, cfg.memPerProc);
 				}
 				else if (cfg.scheduler == "rr") {
-					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.quantumCycles, 16384, 16, 4096);
+					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.quantumCycles, cfg.maxOverallMem, cfg.memPerFrame, cfg.memPerProc);
 				}
+
 				scheduler->start();
 
 				std::cout << "Initialize done" << std::endl;

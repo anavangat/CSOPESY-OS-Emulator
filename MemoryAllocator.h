@@ -23,6 +23,9 @@ class MemoryAllocator {
 
         int totalFrames;
         int framesPerProcess;
+
+        int getProcessCountUnlocked() const;
+        int getExternalFragmentationUnlocked() const;
         
         std::vector<int> frameTable;
         mutable std::mutex allocatorMutex; // Mutex for thread safety
