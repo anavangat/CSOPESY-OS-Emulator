@@ -12,6 +12,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 
 void RR_Scheduler::start() {
 	AScheduler::start();
@@ -116,7 +117,8 @@ void RR_Scheduler::memorySnapshotLoop() {
 			snapshotCounter++;
 			int qq = snapshotCounter.load();
 
-			std::ofstream outFile("memory_stamp_" + std::to_string(qq) + ".txt");
+			std::filesystem::create_directory("memory_snapshot");
+			std::ofstream outFile("memory_snapshot/memory_stamp_" + std::to_string(qq) + ".txt");
 			if (outFile.is_open()) {
 				outFile << memoryAllocator.generateMemoryStamp(LogUtils::getCurrentTimestamp());
 				outFile.close();
