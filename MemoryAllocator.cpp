@@ -60,9 +60,6 @@ void* MemoryAllocator::allocate(size_t size) {
     return ptr;
 }
 
-// -----------------------------------------------------------------------------
-// FULL PAGING DEALLOCATION ALGORITHM
-// -----------------------------------------------------------------------------
 void MemoryAllocator::deallocate(void* ptr) {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
@@ -84,9 +81,6 @@ void MemoryAllocator::deallocate(void* ptr) {
     allocationSizes.erase(ptr);
 }
 
-// -----------------------------------------------------------------------------
-// PAGING VISUALIZATION
-// -----------------------------------------------------------------------------
 std::string MemoryAllocator::visualizeMemory() {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
