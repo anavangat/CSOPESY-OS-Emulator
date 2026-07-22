@@ -16,32 +16,28 @@ void* MemoryAllocator::allocate(size_t size) {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
     if (size == 0 || (currentAllocatedSize + size) > maximumSize) {
-        return nullptr; // Out of memory or invalid request size
+        return nullptr; // Out of memory
     }
 
-    // Collect and sort all currently occupied memory blocks by starting address
     std::vector<MemoryBlock> occupiedBlocks;
     for (const auto& pair : allocatedBlocks) {
         occupiedBlocks.push_back(pair.second);
     }
     std::sort(occupiedBlocks.begin(), occupiedBlocks.end());
 
-    // First-Fit search for a suitable gap in the physical memory pool
     size_t candidateStart = 0;
 
     for (const auto& block : occupiedBlocks) {
         if (block.start - candidateStart >= size) {
-            break; // Found a large enough gap!
+            break; // g kasya pa
         }
         candidateStart = block.start + block.size;
     }
 
-    // Check trailing space at the end of memory
     if (candidateStart + size > maximumSize) {
-        return nullptr; // No contiguous block found large enough for this size
+        return nullptr; // walang kasya
     }
 
-    // Convert candidate offset to a real simulated pointer address
     void* allocatedPtr = static_cast<void*>(physicalMemoryPool.data() + candidateStart);
 
     // Save allocation record
