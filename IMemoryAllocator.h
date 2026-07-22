@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <cstddef>
-//IF NEED IEDIT PAEDIT NALANG :>
+//Paki edit if needed
 class IMemoryAllocator {
 public:
     enum MemoryAllocatorType {
