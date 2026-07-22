@@ -1,93 +1,89 @@
 #include "MemoryAllocator.h"
 #include <sstream>
-#include <set>
 #include <iomanip>
+#include <algorithm>
 
-MemoryAllocator::MemoryAllocator(int maxOverallMem, int memPerFrame, int memPerProc)
-    : maxOverallMem(maxOverallMem), memPerFrame(memPerFrame), memPerProc(memPerProc) 
-{
-    totalFrames = maxOverallMem / memPerFrame;
-    framesPerProcess = memPerProc / memPerFrame;
-    frameTable.assign(totalFrames, -1);
+MemoryAllocator::MemoryAllocator(size_t maxOverallMem, MemoryAllocatorType type) {
+    maximumSize = maxOverallMem;
+    currentAllocatedSize = 0;
+    memoryAllocatorType = type;
+
+    // Allocate continuous backing byte buffer for simulated physical RAM
+    physicalMemoryPool.resize(maximumSize, 0);
 }
 
-bool MemoryAllocator::allocate(int pid) {
+void* MemoryAllocator::allocate(size_t size) {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
-    std::vector<int> freeFrameIndices;
-    for (int i = 0; i < totalFrames; ++i) {
-        if (frameTable[i] == -1) {
-            freeFrameIndices.push_back(i);
+    if (size == 0 || (currentAllocatedSize + size) > maximumSize) {
+        return nullptr; // Out of memory or invalid request size
+    }
+
+    // Collect and sort all currently occupied memory blocks by starting address
+    std::vector<MemoryBlock> occupiedBlocks;
+    for (const auto& pair : allocatedBlocks) {
+        occupiedBlocks.push_back(pair.second);
+    }
+    std::sort(occupiedBlocks.begin(), occupiedBlocks.end());
+
+    // First-Fit search for a suitable gap in the physical memory pool
+    size_t candidateStart = 0;
+
+    for (const auto& block : occupiedBlocks) {
+        if (block.start - candidateStart >= size) {
+            break; // Found a large enough gap!
         }
+        candidateStart = block.start + block.size;
     }
 
-    if (static_cast<int>(freeFrameIndices.size()) < framesPerProcess) {
-        return false; // Not enough physical frames available
+    // Check trailing space at the end of memory
+    if (candidateStart + size > maximumSize) {
+        return nullptr; // No contiguous block found large enough for this size
     }
 
-    for (int i = 0; i < framesPerProcess; ++i) {
-        int targetFrame = freeFrameIndices[i];
-        frameTable[targetFrame] = pid;
-    }
+    // Convert candidate offset to a real simulated pointer address
+    void* allocatedPtr = static_cast<void*>(physicalMemoryPool.data() + candidateStart);
 
-    return true;
+    // Save allocation record
+    MemoryBlock newBlock{ candidateStart, size };
+    allocatedBlocks[allocatedPtr] = newBlock;
+    currentAllocatedSize += size;
+
+    return allocatedPtr;
 }
 
-void MemoryAllocator::deallocate(int pid) {
+void MemoryAllocator::deallocate(void* ptr) {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
-    for (int i = 0; i < totalFrames; ++i) {
-        if (frameTable[i] == pid) {
-            frameTable[i] = -1; // Release frame back to free pool
-        }
+    if (ptr == nullptr) return;
+
+    auto it = allocatedBlocks.find(ptr);
+    if (it != allocatedBlocks.end()) {
+        currentAllocatedSize -= it->second.size;
+        allocatedBlocks.erase(it);
     }
 }
 
-bool MemoryAllocator::isAllocated(int pid) const {
-    std::lock_guard<std::mutex> lock(allocatorMutex);
-    for (int i = 0; i < totalFrames; ++i) {
-        if (frameTable[i] == pid) return true;
-    }
-    return false;
-}
-
-int MemoryAllocator::getProcessCount() const {
-    std::lock_guard<std::mutex> lock(allocatorMutex);
-    std::set<int> distinctPIDs;
-    for (int pid : frameTable) {
-        if (pid != -1) distinctPIDs.insert(pid);
-    }
-    return static_cast<int>(distinctPIDs.size());
-}
-
-int MemoryAllocator::getExternalFragmentation() const {
-    return 0; 
-}
-
-std::string MemoryAllocator::generateMemoryStamp(const std::string& timestamp) const {
+std::string MemoryAllocator::visualizeMemory() {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
     std::stringstream ss;
-    ss << "----start----\n";
-    ss << "Timestamp: " << timestamp << "\n";
-    ss << "Process Count: " << getProcessCount() << "\n";
-    ss << "External Fragmentation: 0 KB (Paging Scheme)\n";
-    ss << std::string(40, '-') << "\n";
+    ss << "---- Memory Visualization ----\n";
+    ss << "Type: " << (memoryAllocatorType == PAGING ? "PAGING" : "FLAT_MEMORY_ALLOCATOR") << "\n";
+    ss << "Allocated: " << currentAllocatedSize << " / " << maximumSize << " Bytes\n";
 
-    for (int i = 0; i < totalFrames; ++i) {
-        int startAddress = i * memPerFrame;
-        int endAddress = ((i + 1) * memPerFrame) - 1;
-
-        ss << "Frame " << std::setw(4) << std::setfill('0') << i << " ["
-           << std::setw(5) << std::setfill('0') << startAddress << " - " 
-           << std::setw(5) << std::setfill('0') << endAddress << "] | ";
-
-        if (frameTable[i] == -1) {
-            ss << "Free Frame\n";
-        } else {
-            ss << "PID: " << frameTable[i] << "\n";
-        }
+    std::vector<MemoryBlock> blocks;
+    for (const auto& pair : allocatedBlocks) {
+        blocks.push_back(pair.second);
     }
-    ss << "----end----\n";
+    std::sort(blocks.begin(), blocks.end());
+
+    for (const auto& block : blocks) {
+        ss << "Block [" << std::setw(6) << block.start << " - " 
+           << std::setw(6) << (block.start + block.size - 1) 
+           << "] Size: " << block.size << " Bytes\n";
+    }
+
+    ss << "------------------------------\n";
     return ss.str();
 }

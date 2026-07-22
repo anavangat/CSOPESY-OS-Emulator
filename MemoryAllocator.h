@@ -1,32 +1,20 @@
 #pragma once
+#include "IMemoryAllocator.h"
 #include <vector>
-#include <string>
+#include <unordered_map>
 #include <mutex>
 
-class MemoryAllocator {
-    public:
-        MemoryAllocator(int maxOverallMem, int memPerFrame, int memPerProc);
-        ~MemoryAllocator() = default;
+class MemoryAllocator : public IMemoryAllocator {
+public:
+    MemoryAllocator(size_t maxOverallMem, MemoryAllocatorType type);
+    ~MemoryAllocator() override = default;
 
-        bool allocate(int pid);
-        void deallocate(int pid);
-        bool isAllocated(int pid) const;
+    void* allocate(size_t size) override;
+    void deallocate(void* ptr) override;
+    std::string visualizeMemory() override;
 
-        int getProcessCount() const;
-        int getExternalFragmentation() const;
-        std::string generateMemoryStamp(const std::string& timeStamp) const;
-    
-    private:
-        int maxOverallMem;
-        int memPerFrame;
-        int memPerProc;
-
-        int totalFrames;
-        int framesPerProcess;
-
-        int getProcessCountUnlocked() const;
-        int getExternalFragmentationUnlocked() const;
-        
-        std::vector<int> frameTable;
-        mutable std::mutex allocatorMutex; // Mutex for thread safety
+private:
+    std::unordered_map<void*, MemoryBlock> allocatedBlocks;
+    std::vector<uint8_t> physicalMemoryPool;
+    mutable std::mutex allocatorMutex;
 };
