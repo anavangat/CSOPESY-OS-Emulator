@@ -113,6 +113,9 @@
     <ClInclude Include="LogEntry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IMemoryAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="MemoryAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -160,6 +160,7 @@
     <ClInclude Include="ForInstruction.h" />
     <ClInclude Include="Instruction.h" />
     <ClInclude Include="LogEntry.h" />
+    <ClInclude Include="IMemoryAllocator.h" />
     <ClInclude Include="MemoryAllocator.h" />
     <ClInclude Include="PrintInstruction.h" />
     <ClInclude Include="Process.h" />
