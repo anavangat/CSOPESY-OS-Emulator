@@ -46,9 +46,14 @@ void RR_Scheduler::schedulerLoop() {
 }
 
 void RR_Scheduler::workerLoop(int coreID) {
+	int idleTickStart = cpuTick.load();
+
 	while (running) {
 		auto process = readyQueue.pop();
-		if (process == nullptr) break; // stop signal
+		if (process == nullptr) {
+			idleCpuTicks += (cpuTick.load() - idleTickStart);
+			break; // stop signal
+		}
 
 		if (!memoryAllocator.isAllocated(process->getPid())) {
 			if (!memoryAllocator.allocate(process->getPid())) {
@@ -56,6 +61,9 @@ void RR_Scheduler::workerLoop(int coreID) {
 				continue; // skip this process and move to the next one
 			}
 		}
+
+		idleCpuTicks += (cpuTick.load() - idleTickStart);
+		int activeTickStart = cpuTick.load();
 		
 		process->setCoreID(coreID);
 		process->setState(Process::RUNNING);
@@ -106,6 +114,9 @@ void RR_Scheduler::workerLoop(int coreID) {
 			process->setCoreID(-1);
 			readyQueue.push(process); // re-enqueue the process for the next round
 		}
+
+		activeCpuTicks += (cpuTick.load() - activeTickStart);
+		idleCpuTicks = cpuTick.load();
 	}
 }
 
