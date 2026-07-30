@@ -96,6 +96,41 @@ int MemoryAllocator::getExternalFragmentation() const {
     return getExternalFragmentationUnlocked();
 }
 
+int MemoryAllocator::getMaxOverallMem() const {
+    return maxOverallMem;
+}
+
+int MemoryAllocator::getUsedMemory() const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+    int occupiedFrames = 0;
+    for (int pid : frameTable) {
+        if (pid != -1) occupiedFrames++;
+    }
+    return occupiedFrames * memPerFrame;
+}
+
+int MemoryAllocator::getFreeMemory() const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+    int freeFrames = 0;
+    for (int pid : frameTable) {
+        if (pid == -1) freeFrames++;
+    }
+    return freeFrames * memPerFrame;
+}
+
+int MemoryAllocator::getTotalFrames() const {
+    return totalFrames;
+}
+
+int MemoryAllocator::getOccupiedFrames() const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+    int occupied = 0;
+    for (int pid : frameTable) {
+        if (pid != -1) occupied++;
+    }
+    return occupied;
+}
+
 // int MemoryAllocator::getProcessCount() const {
 //     std::lock_guard<std::mutex> lock(allocatorMutex);
 

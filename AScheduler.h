@@ -139,6 +139,27 @@ public:
 		return process;
 	}
 
+	// Add to public section of AScheduler.h:
+	MemoryAllocator& getMemoryAllocator() { return memoryAllocator; }
+
+	// Calculates current CPU utilization percentage based on active cores
+	int getCpuUtilization() {
+		int runningCount = 0;
+		{
+			std::lock_guard<std::mutex> lock(allProcessesMutex);
+			for (const auto& p : allProcesses) {
+				if (p->getState() == Process::RUNNING) {
+					runningCount++;
+				}
+			}
+		}
+		if (numCpu == 0) return 0;
+		int util = (runningCount * 100) / numCpu;
+		return (util > 100) ? 100 : util;
+	}
+
+	int getMemPerProc() const { return memPerProc; }
+
 protected:
 	std::atomic<int>& cpuTick;
 

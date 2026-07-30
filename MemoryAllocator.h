@@ -8,6 +8,12 @@ class MemoryAllocator {
         MemoryAllocator(int maxOverallMem, int memPerFrame, int memPerProc);
         ~MemoryAllocator() = default;
 
+        int getMaxOverallMem() const;
+        int getUsedMemory() const;
+        int getFreeMemory() const;
+        int getTotalFrames() const;
+        int getOccupiedFrames() const;
+
         bool allocate(int pid);
         void deallocate(int pid);
         bool isAllocated(int pid) const;

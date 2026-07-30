@@ -209,6 +209,61 @@ void runProcessScreen(const std::shared_ptr<Process>& process) {
 	system("cls");
 }
 
+// C4: "process-smi" Command Handler
+void handleProcessSmi(AScheduler* scheduler) {
+    if (!scheduler) return;
+
+    auto& allocator = scheduler->getMemoryAllocator();
+    int cpuUtil = scheduler->getCpuUtilization();
+    int usedMemKB = allocator.getUsedMemory();
+    int totalMemKB = allocator.getMaxOverallMem();
+    int memUtil = (totalMemKB > 0) ? (usedMemKB * 100) / totalMemKB : 0;
+
+    std::cout << "-----------------------------------------------------------------" << std::endl;
+    std::cout << "| PROCESS-SMI V01.00 Driver Version: 01.00                       |" << std::endl;
+    std::cout << "-----------------------------------------------------------------" << std::endl;
+    std::cout << "CPU-Util: " << cpuUtil << "%" << std::endl;
+    std::cout << "Memory Usage: " << usedMemKB << "KB / " << totalMemKB << "KB" << std::endl;
+    std::cout << "Memory Util: " << memUtil << "%" << std::endl;
+    std::cout << "=================================================================" << std::endl;
+    std::cout << "Running processes and memory usage:" << std::endl;
+    std::cout << "-----------------------------------------------------------------" << std::endl;
+
+    auto runningSnapshot = scheduler->getRunningSnapshot();
+    if (runningSnapshot.empty()) {
+        std::cout << "(No active running processes)" << std::endl;
+    } else {
+        for (const auto& pair : runningSnapshot) {
+            auto process = pair.first;
+            std::cout << process->getName() << " \t" << scheduler->getMemPerProc() << "KB" << std::endl;
+        }
+    }
+    std::cout << "-----------------------------------------------------------------" << std::endl;
+}
+
+// C5: "vmstat" Command Handler
+void handleVmStat(AScheduler* scheduler, int currentTick) {
+    if (!scheduler) return;
+
+    auto& allocator = scheduler->getMemoryAllocator();
+    int totalMem = allocator.getMaxOverallMem();
+    int usedMem = allocator.getUsedMemory();
+    int freeMem = allocator.getFreeMemory();
+    
+    // Total pages used / free based on frame count
+    int totalFrames = allocator.getTotalFrames();
+    int occupiedFrames = allocator.getOccupiedFrames();
+
+    std::cout << std::setw(12) << totalMem << " K total memory" << std::endl;
+    std::cout << std::setw(12) << usedMem << " K used memory" << std::endl;
+    std::cout << std::setw(12) << usedMem << " K active memory" << std::endl;
+    std::cout << std::setw(12) << 0 << " K inactive memory" << std::endl;
+    std::cout << std::setw(12) << freeMem << " K free memory" << std::endl;
+    std::cout << std::setw(12) << currentTick << " total cpu ticks" << std::endl;
+    std::cout << std::setw(12) << occupiedFrames << " pages paged in" << std::endl;
+    std::cout << std::setw(12) << 0 << " pages paged out" << std::endl;
+}
+
 int main() {
 	std::string command;
 	bool initialized = false;
@@ -331,6 +386,14 @@ int main() {
 				std::cout << "---------------------------------------------\n" << std::endl;
 			}
 		}
+		else if (cmd == "process-smi") {
+            handleProcessSmi(scheduler.get());
+            std::cout << "---------------------------------------------\n" << std::endl;
+        }
+        else if (cmd == "vmstat") {
+            handleVmStat(scheduler.get(), cpuTick.load());
+            std::cout << "---------------------------------------------\n" << std::endl;
+        }
 		else if (cmd == "scheduler-start") {
 			scheduler->startDummyProcessGeneration();
 			std::cout << "---------------------------------------------\n" << std::endl;
