@@ -118,6 +118,18 @@ public:
 		return numCpu;
 	}
 
+	int getIdleCpuTicks() const {
+		return idleCpuTicks.load();
+	}
+
+	int getActiveCpuTicks() const {
+		return activeCpuTicks.load();
+	}
+
+	int getTotalCpuTicks() const {
+		return idleCpuTicks.load() + activeCpuTicks.load();
+	}
+
 	std::shared_ptr<Process> createUserProcess(const std::string& name) {
 		int newPid = pid++;
 		auto process = std::make_shared<Process>(newPid, name, std::time(nullptr), memPerProc);
@@ -187,6 +199,9 @@ protected:
 	//int pid = 1; // PID counter for generating unique PIDs for dummy processes
 	std::atomic<int> pid{ 1 }; // PID counter (atomic: shared by generator thread and screen -s)
 
+	std::atomic<int> idleCpuTicks{ 0 }; // count of ticks where all CPUs were idle
+	std::atomic<int> activeCpuTicks{ 0 }; // count of ticks where at least one CPU was active
+
 	std::thread dummyProcessGeneratorThread; // thread for generating dummy processes
 
 	std::vector<std::thread> workerThreads; // create numCpu threads
@@ -202,9 +217,17 @@ protected:
 	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
 	
 	virtual void workerLoop(int coreID) {
+		int idleTickStart = cpuTick.load();
+
 		while (running) {
 			auto process = readyQueue.pop();
-			if (process == nullptr) break; // stop signal
+			if (process == nullptr) {
+				idleCpuTicks += (cpuTick.load() - idleTickStart);
+				break; // stop signal
+			}
+
+			idleCpuTicks += (cpuTick.load() - idleTickStart);
+			int activeTickStart = cpuTick.load();
 
 			process->setCoreID(coreID);
 			process->setState(Process::RUNNING);
@@ -244,6 +267,9 @@ protected:
 			if (process->isFinished()) {
 				process->setState(Process::FINISHED);
 			}
+
+			activeCpuTicks += (cpuTick.load() - activeTickStart);
+			idleCpuTicks = cpuTick.load();
 		}
 	}
 
