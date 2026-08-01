@@ -11,8 +11,7 @@ void ReadInstruction::execute(Process& process, SymbolTable& symbolTable) {
 	uint16_t value = 0;
 
 	if (!process.getMemoryAllocator().read(process.getPid(), memoryAddress, value)) {
-		// Handle read failure (e.g., log an error, throw an exception, etc.)
-		process.setState(Process::FINISHED);
+		process.reportMemoryViolation(memoryAddress);
 		return;
 	}
 

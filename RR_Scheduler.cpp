@@ -42,6 +42,7 @@ void RR_Scheduler::workerLoop(int coreID) {
 				continue; // skip this process and move to the next one
 			}
 		}
+		process->setMemoryAllocator(&memoryAllocator);
 
 		idleCpuTicks += (cpuTick.load() - idleTickStart);
 		int activeTickStart = cpuTick.load();
@@ -50,10 +51,21 @@ void RR_Scheduler::workerLoop(int coreID) {
 		process->setState(Process::RUNNING);
 		int executedThisQuantum = 0;
 		bool wentToSleep = false;
+		bool wasMemoryViolated = false;
 
 		while (running && !process->isFinished() && executedThisQuantum < quantum) {
 			auto instruction = process->getCurrentInstruction();
 			process->executeCurrentInstruction();
+
+			//Check for memory violation after executing the instruction
+			if (process->hasMemoryViolation()) {
+				memoryAllocator.deallocate(process->getPid());
+				process->setState(Process::FINISHED);
+				process->setCoreID(-1);
+				wasMemoryViolated = true;
+				break;
+			}
+
 			LogUtils::print_command(cpuTick.load(), *process, coreID);
 
 			executedThisQuantum++;
@@ -66,18 +78,21 @@ void RR_Scheduler::workerLoop(int coreID) {
 
 			waitForExecDelay();
 		}
-		if (process->isFinished()) {
-			memoryAllocator.deallocate(process->getPid());
-			process->setState(Process::FINISHED);
-		}
-		else if (!wentToSleep) {
-			process->setState(Process::READY);
-			process->setCoreID(-1);
-			readyQueue.push(process); // re-enqueue the process for the next round
+
+		if (!wasMemoryViolated) {
+			if (process->isFinished()) {
+				memoryAllocator.deallocate(process->getPid());
+				process->setState(Process::FINISHED);
+			}
+			else if (!wentToSleep) {
+				process->setState(Process::READY);
+				process->setCoreID(-1);
+				readyQueue.push(process); // re-enqueue the process for the next round
+			}
 		}
 
 		activeCpuTicks += (cpuTick.load() - activeTickStart);
-		idleCpuTicks = cpuTick.load();
+		idleTickStart = cpuTick.load();
 	}
 }
 

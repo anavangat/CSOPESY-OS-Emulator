@@ -498,3 +498,4 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /memory_snapshot
+csopesy-backing-store.txt

@@ -10,9 +10,7 @@ void WriteInstruction::execute(Process& process, SymbolTable& symbolTable) {
 
     if (!process.getMemoryAllocator().write(process.getPid(), memoryAddress,value))
     {
-        process.setState(Process::FINISHED);
+        process.reportMemoryViolation(memoryAddress);
         return;
     }
-
-	process.getMemoryAllocator().write(process.getPid(), memoryAddress, value);
 }

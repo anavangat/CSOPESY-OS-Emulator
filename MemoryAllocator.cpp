@@ -255,7 +255,7 @@ int MemoryAllocator::selectVictimFrame()
 
 int MemoryAllocator::pageIn(int pid, int pageNumber)
 {
-    std::lock_guard<std::mutex> lock(allocatorMutex); // Lock the mutex to ensure thread safety during page-in operation
+    //std::lock_guard<std::mutex> lock(allocatorMutex); // Lock the mutex to ensure thread safety during page-in operation
 
 	auto ptIt = pageTables.find(pid); // Find the page table for the given process ID
 	if (ptIt == pageTables.end()) // If the page table is not found

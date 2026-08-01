@@ -278,14 +278,32 @@ protected:
 				break; // stop signal
 			}
 
+			if (!memoryAllocator.isAllocated(process->getPid())) {
+				if (!memoryAllocator.allocate(process->getPid(), process->getMemoryRequired())) {
+					readyQueue.push(process);
+					continue; // skip this process and move to the next one
+				}
+			}
+			process->setMemoryAllocator(&memoryAllocator);
+
 			idleCpuTicks += (cpuTick.load() - idleTickStart);
 			int activeTickStart = cpuTick.load();
 
 			process->setCoreID(coreID);
 			process->setState(Process::RUNNING);
+			bool wasMemoryViolated = false;
 			while (running && !process->isFinished()) {
 				auto instruction = process->getCurrentInstruction();
 				process->executeCurrentInstruction();
+
+				if (process->hasMemoryViolation()) {
+					memoryAllocator.deallocate(process->getPid());
+					process->setState(Process::FINISHED);
+					process->setCoreID(-1);
+					wasMemoryViolated = true;
+					break;
+				}
+
 				LogUtils::print_command(cpuTick.load(), *process, coreID);
 				
 				process->moveToNextInstruction();
@@ -297,12 +315,13 @@ protected:
 				waitForExecDelay();
 			}
 
-			if (process->isFinished()) {
+			if (!wasMemoryViolated && process->isFinished()) {
+				memoryAllocator.deallocate(process->getPid());
 				process->setState(Process::FINISHED);
 			}
 
 			activeCpuTicks += (cpuTick.load() - activeTickStart);
-			idleCpuTicks = cpuTick.load();
+			idleTickStart = cpuTick.load();
 		}
 	}
 
