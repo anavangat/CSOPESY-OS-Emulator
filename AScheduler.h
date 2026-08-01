@@ -234,7 +234,37 @@ protected:
 			//std::this_thread::sleep_for(std::chrono::milliseconds(10)); // avoid busy-spinning
 		}
 	}
-	
+
+	// Helper function for worker loop
+	bool putToSleepIfNeeded(const std::shared_ptr<Process>& process, const std::shared_ptr<Instruction>& instruction) {
+		bool isSleep = instruction && instruction->getInstructionType() == Instruction::SLEEP;
+		if (!isSleep) return false;
+
+		int sleepTicks = 0;
+		auto sleepInstruction = std::dynamic_pointer_cast<SleepInstruction>(instruction);
+		if (sleepInstruction) {
+			sleepTicks = sleepInstruction->getTicks();
+		}
+
+		process->setState(Process::WAITING);
+		process->setCoreID(-1);
+		process->setWakeUpTick(cpuTick.load() + sleepTicks);
+		{
+			std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
+			sleepingProcesses.push_back(process);
+		}
+		return true;
+	}
+
+	// Helper function for worker loop
+	void waitForExecDelay() {
+		int waitStartTick = cpuTick.load();
+		while (cpuTick.load() - waitStartTick < delaysPerExec) {
+			// wait for delaysPerExec ticks
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(1)); // for race condition
+	}
+
 	virtual void workerLoop(int coreID) {
 		int idleTickStart = cpuTick.load();
 
@@ -254,35 +284,16 @@ protected:
 				auto instruction = process->getCurrentInstruction();
 				process->executeCurrentInstruction();
 				LogUtils::print_command(cpuTick.load(), *process, coreID);
-
-				bool isSleep = instruction && instruction->getInstructionType() == Instruction::SLEEP;
-				int sleepTicks = 0;
-				if (isSleep) {
-					auto sleepInstruction = std::dynamic_pointer_cast<SleepInstruction>(instruction);
-					if (sleepInstruction) {
-						sleepTicks = sleepInstruction->getTicks();
-					}
-				}
-
+				
 				process->moveToNextInstruction();
 
-				if (isSleep) {
-					process->setState(Process::WAITING);
-					process->setCoreID(-1);
-					process->setWakeUpTick(cpuTick.load() + sleepTicks);
-					{
-						std::lock_guard<std::mutex> lock(sleepingProcessesMutex);
-						sleepingProcesses.push_back(process);
-					}
+				if (putToSleepIfNeeded(process, instruction)) {
 					break; // exit the inner loop to allow other processes to run
 				}
 
-				int waitStartTick = cpuTick.load();
-				while (cpuTick.load() - waitStartTick < delaysPerExec) {
-					 // wait for delaysPerExec ticks
-				}
-				std::this_thread::sleep_for(std::chrono::milliseconds(1)); // for race condition
+				waitForExecDelay();
 			}
+
 			if (process->isFinished()) {
 				process->setState(Process::FINISHED);
 			}
