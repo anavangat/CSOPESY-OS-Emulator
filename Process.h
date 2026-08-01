@@ -4,10 +4,13 @@
 #include <ctime>
 #include <memory>
 #include <atomic>
+#include <mutex>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
 #include "Instruction.h"
 #include "ForInstruction.h"
 #include "SymbolTable.h"
-#include <mutex>
 #include "LogEntry.h"
 
 class MemoryAllocator; // Forward declaration of MemoryAllocator class to avoid circular dependency while including MemoryAllocator.h functionalities
@@ -57,6 +60,11 @@ public:
 	void setMemoryAllocator(MemoryAllocator* allocator);
 	MemoryAllocator& getMemoryAllocator();
 
+	void reportMemoryViolation(int address);
+	bool hasMemoryViolation() const;
+	std::string getViolationAddress() const;
+	std::string getViolationTimestamp() const;
+
 private:
 	int pid;
 	std::atomic<int> coreID; //Assigned core ID, -1 if not assigned
@@ -81,4 +89,9 @@ private:
 	int memoryRequired;
 
 	MemoryAllocator* memoryAllocator = nullptr;
+
+	bool memoryViolation = false;
+	std::string violationAddress;
+	std::string violationTimestamp;
+	mutable std::mutex violationMutex; // Mutex to protect access to memory violation data
 };

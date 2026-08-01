@@ -130,3 +130,41 @@ MemoryAllocator& Process::getMemoryAllocator()
 
 	return *memoryAllocator;
 }
+
+void Process::reportMemoryViolation(int address) {
+	std::lock_guard<std::mutex> lock(violationMutex);
+	if (memoryViolation) {
+		return; // Already reported a violation
+	}
+
+	memoryViolation = true;
+
+	std::stringstream ss;
+	ss << "0x" << std::hex << address;
+	violationAddress = ss.str();
+
+	std::time_t now = std::time(nullptr);
+	std::tm tmStruct{};
+	std::tm* ltm = std::localtime(&now);
+	if (ltm) {
+		tmStruct = *ltm;
+	}
+	char buffer[20];
+	std::strftime(buffer, sizeof(buffer), "%H:%M:%S", &tmStruct);
+	violationTimestamp = std::string(buffer);
+}
+
+bool Process::hasMemoryViolation() const {
+	std::lock_guard<std::mutex> lock(violationMutex);
+	return memoryViolation;
+}
+
+std::string Process::getViolationAddress() const {
+	std::lock_guard<std::mutex> lock(violationMutex);
+	return violationAddress;
+}
+
+std::string Process::getViolationTimestamp() const {
+	std::lock_guard<std::mutex> lock(violationMutex);
+	return violationTimestamp;
+}
