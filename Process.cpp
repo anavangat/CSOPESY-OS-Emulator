@@ -1,4 +1,6 @@
 #include "Process.h"
+#include "MemoryAllocator.h"
+
 
 int Process::getPid() const {
 	return pid;
@@ -114,4 +116,17 @@ int Process::getWakeUpTick() const {
 int Process::getMemoryRequired() const
 {
 	return memoryRequired;
+}
+
+void Process::setMemoryAllocator(MemoryAllocator* allocator)
+{
+	memoryAllocator = allocator;
+}
+
+MemoryAllocator& Process::getMemoryAllocator()
+{
+	if (memoryAllocator == nullptr)
+		throw std::runtime_error("MemoryAllocator not assigned.");
+
+	return *memoryAllocator;
 }

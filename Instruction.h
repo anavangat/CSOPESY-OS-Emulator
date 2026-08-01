@@ -13,7 +13,9 @@ public:
 		ADD,
 		SUBTRACT,
 		SLEEP,
-		FOR
+		FOR,
+		READ,
+		WRITE,
 	};
 	
 	Instruction(int pid, InstructionType type);

@@ -23,7 +23,7 @@ class AScheduler
 {
 public:
 	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec, std::atomic<int>& cpuTick, int maxOverallMem, int memPerFrame, int memPerProc)
-		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick), memoryAllocator(maxOverallMem, memPerFrame, memPerProc), memPerProc(memPerProc){
+		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick), memoryAllocator(maxOverallMem, memPerFrame), memPerProc(memPerProc){
 	}
 	virtual ~AScheduler() = default;
 

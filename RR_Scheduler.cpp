@@ -56,7 +56,7 @@ void RR_Scheduler::workerLoop(int coreID) {
 		}
 
 		if (!memoryAllocator.isAllocated(process->getPid())) {
-			if (!memoryAllocator.allocate(process->getPid())) {
+			if (!memoryAllocator.allocate(process->getPid())) { //make this work with the new allocate
 				readyQueue.push(process);
 				continue; // skip this process and move to the next one
 			}

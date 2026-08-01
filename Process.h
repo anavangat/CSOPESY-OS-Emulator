@@ -10,6 +10,8 @@
 #include <mutex>
 #include "LogEntry.h"
 
+class MemoryAllocator; // Forward declaration of MemoryAllocator class to avoid circular dependency while including MemoryAllocator.h functionalities
+
 class Process
 {
 public:
@@ -52,6 +54,9 @@ public:
 
 	int getMemoryRequired() const;
 
+	void setMemoryAllocator(MemoryAllocator* allocator);
+	MemoryAllocator& getMemoryAllocator();
+
 private:
 	int pid;
 	std::atomic<int> coreID; //Assigned core ID, -1 if not assigned
@@ -74,4 +79,6 @@ private:
 	SymbolTable symbolTable;
 
 	int memoryRequired;
+
+	MemoryAllocator* memoryAllocator = nullptr;
 };
