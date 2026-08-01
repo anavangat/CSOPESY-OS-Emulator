@@ -217,6 +217,10 @@ protected:
 	std::mutex sleepingProcessesMutex; // mutex to protect access to sleepingProcesses
 	std::thread sleepWakeThread; // thread for checking sleeping processes
 
+	virtual int getQuantum() const {// pure virtual function to get the quantum for the scheduler
+		return 0; // default implementation returns 0 for non-RR schedulers
+	}
+
 	virtual void schedulerLoop() {
 		size_t nextToEnqueue = 0; // index of the next not-yet-queued process in allProcesses
 
@@ -268,6 +272,51 @@ protected:
 		std::this_thread::sleep_for(std::chrono::milliseconds(1)); // for race condition
 	}
 
+	// Runs a process for a given quantum.
+	void runProcessQuantum(const std::shared_ptr<Process>& process, int coreID, int quantum) {
+		int executedThisQuantum = 0;
+		bool wentToSleep = false;
+		bool wasMemoryViolated = false;
+
+		while (running && !process->isFinished() && (quantum <= 0 || executedThisQuantum < quantum)) {
+			auto instruction = process->getCurrentInstruction();
+			process->executeCurrentInstruction();
+
+			//Check for memory violation after executing the instruction
+			if (process->hasMemoryViolation()) {
+				memoryAllocator.deallocate(process->getPid());
+				process->setState(Process::FINISHED);
+				process->setCoreID(-1);
+				wasMemoryViolated = true;
+				break;
+			}
+
+			LogUtils::print_command(cpuTick.load(), *process, coreID);
+
+			executedThisQuantum++;
+			process->moveToNextInstruction();
+
+			if (putToSleepIfNeeded(process, instruction)) {
+				wentToSleep = true;
+				break; // exit the quantum loop if the process goes to sleep
+			}
+
+			waitForExecDelay();
+		}
+
+		if (!wasMemoryViolated) {
+			if (process->isFinished()) {
+				memoryAllocator.deallocate(process->getPid());
+				process->setState(Process::FINISHED);
+			}
+			else if (!wentToSleep && quantum > 0) {
+				process->setState(Process::READY);
+				process->setCoreID(-1);
+				readyQueue.push(process); // re-enqueue the process for the next round
+			}
+		}
+	}
+
 	virtual void workerLoop(int coreID) {
 		int idleTickStart = cpuTick.load();
 
@@ -291,34 +340,8 @@ protected:
 
 			process->setCoreID(coreID);
 			process->setState(Process::RUNNING);
-			bool wasMemoryViolated = false;
-			while (running && !process->isFinished()) {
-				auto instruction = process->getCurrentInstruction();
-				process->executeCurrentInstruction();
-
-				if (process->hasMemoryViolation()) {
-					memoryAllocator.deallocate(process->getPid());
-					process->setState(Process::FINISHED);
-					process->setCoreID(-1);
-					wasMemoryViolated = true;
-					break;
-				}
-
-				LogUtils::print_command(cpuTick.load(), *process, coreID);
-				
-				process->moveToNextInstruction();
-
-				if (putToSleepIfNeeded(process, instruction)) {
-					break; // exit the inner loop to allow other processes to run
-				}
-
-				waitForExecDelay();
-			}
-
-			if (!wasMemoryViolated && process->isFinished()) {
-				memoryAllocator.deallocate(process->getPid());
-				process->setState(Process::FINISHED);
-			}
+			
+			runProcessQuantum(process, coreID, getQuantum());
 
 			activeCpuTicks += (cpuTick.load() - activeTickStart);
 			idleTickStart = cpuTick.load();

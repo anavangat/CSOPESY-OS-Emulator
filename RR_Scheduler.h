@@ -10,6 +10,6 @@ public:
 
 private:
 	int quantum; // time quantum for round-robin scheduling
-	void workerLoop(int coreID) override; // implement worker loop for round-robin scheduling
+	int getQuantum() const { return quantum; }
 };
 
