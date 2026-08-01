@@ -20,9 +20,12 @@ clang++ -std=c++17 \
   SubtractInstruction.cpp \
   SleepInstruction.cpp \
   ForInstruction.cpp \
+  ReadInstruction.cpp \
+  WriteInstruction.cpp \
   ReadyQueue.cpp \
   SymbolTable.cpp \
   MemoryAllocator.cpp \
+  MemoryConfigUtils.cpp \
   -o emulator
 
 # $? stores the exit status of the compile command (equivalent to %errorlevel%)

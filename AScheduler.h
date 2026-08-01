@@ -11,6 +11,7 @@
 #include "Process.h"
 #include "ReadyQueue.h"
 #include "LogUtils.h"
+#include "MemoryConfigUtils.h"
 #include "PrintInstruction.h"
 #include "DeclareInstruction.h"
 #include "AddInstruction.h"
@@ -22,8 +23,8 @@
 class AScheduler
 {
 public:
-	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec, std::atomic<int>& cpuTick, int maxOverallMem, int memPerFrame, int memPerProc)
-		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick), memoryAllocator(maxOverallMem, memPerFrame), memPerProc(memPerProc){
+	AScheduler(int numCpu, int batchProcessFreq, int minIns, int maxIns, int delaysPerExec, std::atomic<int>& cpuTick, int maxOverallMem, int memPerFrame, int minMemPerProc, int maxMemPerProc)
+		: numCpu(numCpu), batchProcessFreq(batchProcessFreq), minIns(minIns), maxIns(maxIns), delaysPerExec(delaysPerExec), cpuTick(cpuTick), memoryAllocator(maxOverallMem, memPerFrame), minMemPerProc(minMemPerProc), maxMemPerProc(maxMemPerProc){
 	}
 	virtual ~AScheduler() = default;
 
@@ -132,6 +133,7 @@ public:
 
 	std::shared_ptr<Process> createUserProcess(const std::string& name) {
 		int newPid = pid++;
+		int memPerProc = MemoryConfigUtils::rollMemoryPerProcess(minMemPerProc, maxMemPerProc);
 		auto process = std::make_shared<Process>(newPid, name, std::time(nullptr), memPerProc);
 
 		int instructionCount = rand() % (maxIns - minIns + 1) + minIns;
@@ -170,14 +172,15 @@ public:
 		return (util > 100) ? 100 : util;
 	}
 
-	int getMemPerProc() const { return memPerProc; }
+	int getMinMemPerProc() const { return minMemPerProc; }
+	int getMaxMemPerProc() const { return maxMemPerProc; }
 
 protected:
 	std::atomic<int>& cpuTick;
 
 	MemoryAllocator memoryAllocator; // memory allocator for processes
-	int memPerProc; // memory required per process
-
+	int minMemPerProc; // minimum memory required per process
+	int maxMemPerProc; // maximum memory required per process
 
 	// config vars
 	int numCpu;
@@ -355,6 +358,7 @@ protected:
 		/**std::string n = std::to_string(pid);
 		std::string name = "Process" + n;**/
 
+		int memPerProc = MemoryConfigUtils::rollMemoryPerProcess(minMemPerProc, maxMemPerProc);
 		auto process = std::make_shared<Process>(pid, paddedName, std::time(nullptr), memPerProc); 
 
 		// generate instructions and add to process

@@ -12,6 +12,7 @@
 #include <thread>
 #include <chrono>
 #include "LogUtils.h"
+#include "MemoryConfigUtils.h"
 #include "Process.h"
 #include "AScheduler.h"
 #include "FCFS_Scheduler.h"
@@ -37,7 +38,8 @@ struct Config {
 	uint32_t delaysPerExec = 0;
 	uint32_t maxOverallMem = 16384;
 	uint32_t memPerFrame = 16;
-	uint32_t memPerProc = 4096;
+	uint32_t minMemPerProc = 64;
+	uint32_t maxMemPerProc = 65536;
 };
 
 // Read and parse config.txt. Returns true if file loaded (even if some values invalid/defaulted).
@@ -103,10 +105,15 @@ Config parseConfig(const std::string& path) {
 			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.memPerFrame = static_cast<uint32_t>(v);
 			else std::cout << "mem-per-frame out of range. Using: " << cfg.memPerFrame << std::endl;
 		}
-		else if (key == "mem-per-proc") {
+		else if (key == "min-mem-per-proc") {
 			uint64_t v=0; ss >> v;
-			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.memPerProc = static_cast<uint32_t>(v);
-			else std::cout << "mem-per-proc out of range. Using: " << cfg.memPerProc << std::endl;
+			if (MemoryConfigUtils::isValidMemoryValue(v)) cfg.minMemPerProc = static_cast<uint32_t>(v);
+			else std::cout << "min-mem-per-proc invalid (must be power of two between 64 and 65536). Using: " << cfg.minMemPerProc << std::endl;
+		}
+		else if (key == "max-mem-per-proc") {
+			uint64_t v=0; ss >> v;
+			if (MemoryConfigUtils::isValidMemoryValue(v)) cfg.maxMemPerProc = static_cast<uint32_t>(v);
+			else std::cout << "max-mem-per-proc invalid (must be power of two between 64 and 65536). Using: " << cfg.maxMemPerProc << std::endl;
 		}
 		// ignore unknown keys
 	}
@@ -124,8 +131,12 @@ Config parseConfig(const std::string& path) {
 		memConfigValid = false;
 	}
 	else {
-		if (cfg.memPerProc % cfg.memPerFrame != 0) {
-			std::cout << "mem-per-proc is not a multiple of mem-per-frame; a process could not be represented as a whole number of frames." << std::endl;
+		if (cfg.minMemPerProc % cfg.memPerFrame != 0) {
+			std::cout << "min-mem-per-proc is not a multiple of mem-per-frame; the remainder would be unaddressable." << std::endl;
+			memConfigValid = false;
+		}
+		if (cfg.maxMemPerProc % cfg.memPerFrame != 0) {
+			std::cout << "max-mem-per-proc is not a multiple of mem-per-frame; the remainder would be unaddressable." << std::endl;
 			memConfigValid = false;
 		}
 		if (cfg.maxOverallMem % cfg.memPerFrame != 0) {
@@ -134,17 +145,22 @@ Config parseConfig(const std::string& path) {
 		}
 	}
 
-	if (cfg.memPerProc > cfg.maxOverallMem) {
-		std::cout << "mem-per-proc (" << cfg.memPerProc << ") exceeds max-overall-mem (" << cfg.maxOverallMem
-		           << "); no process could ever be allocated." << std::endl;
+	if (cfg.minMemPerProc > cfg.maxMemPerProc) {
+		std::cout << "min-mem-per-proc > max-mem-per-proc, swapping values." << std::endl;
+		std::swap(cfg.minMemPerProc, cfg.maxMemPerProc);
+	}
+
+	if (cfg.maxMemPerProc > cfg.maxOverallMem) {
+		std::cout << "max-mem-per-proc > max-overall-mem; this would prevent any process from being allocated." << std::endl;
 		memConfigValid = false;
 	}
 
 	if (!memConfigValid) {
-		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 16, mem-per-proc 4096." << std::endl;
+		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 16, min-mem-per-proc 64, max-mem-per-proc 65536." << std::endl;
 		cfg.maxOverallMem = 16384;
 		cfg.memPerFrame = 16;
-		cfg.memPerProc = 4096;
+		cfg.minMemPerProc = 64;
+		cfg.maxMemPerProc = 65536;
 	}
 
 	std::cout << "Loaded configuration:" << std::endl;
@@ -157,7 +173,8 @@ Config parseConfig(const std::string& path) {
 	std::cout << "  delays-per-exec: " << cfg.delaysPerExec << std::endl;
 	std::cout << "  max-overall-mem: " << cfg.maxOverallMem << std::endl;
 	std::cout << "  mem-per-frame: " << cfg.memPerFrame << std::endl;
-	std::cout << "  mem-per-proc: " << cfg.memPerProc << std::endl;
+	std::cout << "  min-mem-per-proc: " << cfg.minMemPerProc << std::endl;
+	std::cout << "  max-mem-per-proc: " << cfg.maxMemPerProc << std::endl;
 	
 	return cfg;
 }
@@ -304,10 +321,10 @@ int main() {
 				cfgLoaded = true;
 
 				if (cfg.scheduler == "fcfs") {
-					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.maxOverallMem, cfg.memPerFrame, cfg.memPerProc);
+					scheduler = std::make_unique<FCFS_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.maxOverallMem, cfg.memPerFrame, cfg.minMemPerProc, cfg.maxMemPerProc);
 				}
 				else if (cfg.scheduler == "rr") {
-					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.quantumCycles, cfg.maxOverallMem, cfg.memPerFrame, cfg.memPerProc);
+					 scheduler = std::make_unique<RR_Scheduler>(cfg.numCpu, cfg.batchProcessFreq, cfg.minIns, cfg.maxIns, cfg.delaysPerExec, cpuTick, cfg.quantumCycles, cfg.maxOverallMem, cfg.memPerFrame, cfg.minMemPerProc, cfg.maxMemPerProc);
 				}
 
 				scheduler->start();
