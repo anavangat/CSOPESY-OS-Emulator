@@ -17,6 +17,9 @@ class MemoryAllocator {
         int getTotalFrames() const;
         int getOccupiedFrames() const;
 
+        int getNumPagedIn() const { return numPagedIn; }
+        int getNumPagedOut() const { return numPagedOut; }
+
         bool allocate(int pid, int memoryRequired);
         void deallocate(int pid);
 

@@ -21,7 +21,7 @@ MemoryAllocator::MemoryAllocator(int maxOverallMem, int memPerFrame)
 
 bool MemoryAllocator::allocate(int pid, int memoryRequired) {
 
-	//std::lock_guard<std::mutex> lock(allocatorMutex); // Lock the mutex to ensure thread safety during allocation
+	std::lock_guard<std::mutex> lock(allocatorMutex); // Lock the mutex to ensure thread safety during allocation
 
     std::ofstream file("csopesy-backing-store.txt"); // Open the backing store file for writing
 
@@ -105,7 +105,7 @@ bool MemoryAllocator::allocate(int pid, int memoryRequired) {
 }
 
 void MemoryAllocator::deallocate(int pid) {
-    //std::lock_guard<std::mutex> lock(allocatorMutex);
+    std::lock_guard<std::mutex> lock(allocatorMutex);
 
     std::ofstream file("csopesy-backing-store.txt"); // Open the backing store file for writing
 
@@ -603,3 +603,88 @@ std::string MemoryAllocator::generateMemoryStamp(const std::string& timestamp) c
 }
 
 */
+
+//Sure thing nelson!
+
+bool MemoryAllocator::isAllocated(int pid) const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+    return pageTables.find(pid) != pageTables.end();
+}
+
+int MemoryAllocator::getMaxOverallMem() const {
+    return maxOverallMem;
+}
+
+int MemoryAllocator::getUsedMemory() const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+    int occupiedFrames = 0;
+    for (int i = 0; i < totalFrames; ++i) {
+        if (frameTable[i].occupied) {
+            occupiedFrames++;
+        }
+    }
+    return occupiedFrames * memPerFrame;
+}
+
+int MemoryAllocator::getFreeMemory() const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+    return static_cast<int>(freeFrames.size()) * memPerFrame;
+}
+
+int MemoryAllocator::getProcessCountUnlocked() const {
+    return static_cast<int>(pageTables.size());
+}
+
+int MemoryAllocator::getExternalFragmentationUnlocked() const {
+    return static_cast<int>(freeFrames.size()) * memPerFrame;
+}
+
+std::string MemoryAllocator::generateMemoryStamp(const std::string& timestamp) const {
+    std::lock_guard<std::mutex> lock(allocatorMutex);
+
+    std::vector<std::string> sections;
+
+    std::stringstream header;
+    header << "Timestamp: " << timestamp << "\n";
+    header << "Number of processes in memory: " << getProcessCountUnlocked() << "\n";
+    header << "Total external fragmentation in KB: " << getExternalFragmentationUnlocked();
+    sections.push_back(header.str());
+
+    sections.push_back("----end---- = " + std::to_string(maxOverallMem));
+
+    int frameIndex = totalFrames - 1;
+    while (frameIndex >= 0) {
+        int owner = frameTable[frameIndex].pid;
+        int runEnd = frameIndex;
+
+        while (frameIndex - 1 >= 0 && frameTable[frameIndex - 1].pid == owner) {
+            frameIndex--;
+        }
+        int runStart = frameIndex;
+
+        if (owner != -1) {
+            int upperAddress = (runEnd + 1) * memPerFrame;
+            int lowerAddress = runStart * memPerFrame;
+
+            std::stringstream block;
+            block << upperAddress << "\n";
+            block << "P" << owner << "\n";
+            block << lowerAddress;
+            sections.push_back(block.str());
+        }
+
+        frameIndex = runStart - 1;
+    }
+
+    sections.push_back("----start----- = 0");
+
+    std::stringstream out;
+    for (size_t i = 0; i < sections.size(); ++i) {
+        out << sections[i];
+        if (i + 1 < sections.size()) {
+            out << "\n\n";
+        }
+    }
+    out << "\n";
+    return out.str();
+}

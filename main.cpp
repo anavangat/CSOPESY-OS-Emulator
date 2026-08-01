@@ -210,7 +210,7 @@ void runProcessScreen(const std::shared_ptr<Process>& process) {
 	system("cls");
 }
 
-// C4: "process-smi" Command Handler
+// Updated process-smi Handler
 void handleProcessSmi(AScheduler* scheduler) {
     if (!scheduler) return;
 
@@ -236,13 +236,14 @@ void handleProcessSmi(AScheduler* scheduler) {
     } else {
         for (const auto& pair : runningSnapshot) {
             auto process = pair.first;
-            std::cout << process->getName() << " \t" << scheduler->getMemPerProc() << "KB" << std::endl;
+            // Uses actual memory allocated for each process
+            std::cout << process->getName() << " \t" << process->getMemoryRequired() << "KB" << std::endl;
         }
     }
     std::cout << "-----------------------------------------------------------------" << std::endl;
 }
 
-// C5: "vmstat" Command Handler
+// Updated vmstat Handler
 void handleVmStat(AScheduler* scheduler, int currentTick) {
     if (!scheduler) return;
 
@@ -251,18 +252,17 @@ void handleVmStat(AScheduler* scheduler, int currentTick) {
     int usedMem = allocator.getUsedMemory();
     int freeMem = allocator.getFreeMemory();
     
-    // Total pages used / free based on frame count
-    int totalFrames = allocator.getTotalFrames();
-    int occupiedFrames = allocator.getOccupiedFrames();
+    int pagedIn = allocator.getNumPagedIn();
+    int pagedOut = allocator.getNumPagedOut();
 
     std::cout << std::setw(12) << totalMem << " K total memory" << std::endl;
     std::cout << std::setw(12) << usedMem << " K used memory" << std::endl;
     std::cout << std::setw(12) << usedMem << " K active memory" << std::endl;
-    std::cout << std::setw(12) << 0 << " K inactive memory" << std::endl;
+    std::cout << std::setw(12) << freeMem << " K inactive memory" << std::endl;
     std::cout << std::setw(12) << freeMem << " K free memory" << std::endl;
     std::cout << std::setw(12) << currentTick << " total cpu ticks" << std::endl;
-    std::cout << std::setw(12) << occupiedFrames << " pages paged in" << std::endl;
-    std::cout << std::setw(12) << 0 << " pages paged out" << std::endl;
+    std::cout << std::setw(12) << pagedIn << " pages paged in" << std::endl;
+    std::cout << std::setw(12) << pagedOut << " pages paged out" << std::endl;
 }
 
 int main() {
