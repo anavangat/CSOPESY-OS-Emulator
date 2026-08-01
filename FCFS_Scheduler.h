@@ -10,6 +10,5 @@ public:
 		: AScheduler(numCpu, batchProcessFreq, minIns, maxIns, delaysPerExec, cpuTick,  maxOverallMem,  memPerFrame,  memPerProc) { }
 
 private:
-	void schedulerLoop() override;
 };
 

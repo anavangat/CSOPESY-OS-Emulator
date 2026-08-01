@@ -214,7 +214,26 @@ protected:
 	std::mutex sleepingProcessesMutex; // mutex to protect access to sleepingProcesses
 	std::thread sleepWakeThread; // thread for checking sleeping processes
 
-	virtual void schedulerLoop() = 0; // inheriting classes implement scheduling algorithm here
+	virtual void schedulerLoop() {
+		size_t nextToEnqueue = 0; // index of the next not-yet-queued process in allProcesses
+
+		while (running) {
+			std::vector<std::shared_ptr<Process>> newProcesses;
+			{
+				std::lock_guard<std::mutex> lock(allProcessesMutex);
+				while (nextToEnqueue < allProcesses.size()) {
+					newProcesses.push_back(allProcesses[nextToEnqueue]);
+					++nextToEnqueue;
+				}
+			}
+
+			for (auto& p : newProcesses) {
+				readyQueue.push(p);
+			}
+
+			//std::this_thread::sleep_for(std::chrono::milliseconds(10)); // avoid busy-spinning
+		}
+	}
 	
 	virtual void workerLoop(int coreID) {
 		int idleTickStart = cpuTick.load();

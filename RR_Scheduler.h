@@ -13,7 +13,6 @@ public:
 
 private:
 	int quantum; // time quantum for round-robin scheduling
-	void schedulerLoop() override; // implement round-robin scheduling algorithm
 	void workerLoop(int coreID) override; // implement worker loop for round-robin scheduling
 
 	// FOR FIRST-FIT MA ASSIGNMENT
