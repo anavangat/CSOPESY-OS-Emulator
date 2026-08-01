@@ -14,18 +14,6 @@
 #include <sstream>
 #include <filesystem>
 
-void RR_Scheduler::start() {
-	AScheduler::start();
-	memorySnapshotThread = std::thread(&RR_Scheduler::memorySnapshotLoop, this);
-}
-
-void RR_Scheduler::stop() {
-	AScheduler::stop();
-	if (memorySnapshotThread.joinable()) {
-		memorySnapshotThread.join();
-	}
-}
-
 void RR_Scheduler::workerLoop(int coreID) {
 	int idleTickStart = cpuTick.load();
 
@@ -93,26 +81,5 @@ void RR_Scheduler::workerLoop(int coreID) {
 
 		activeCpuTicks += (cpuTick.load() - activeTickStart);
 		idleTickStart = cpuTick.load();
-	}
-}
-
-void RR_Scheduler::memorySnapshotLoop() {
-	int lastSnapshotTick = cpuTick.load();
-
-	while (running) {
-		if (cpuTick.load() - lastSnapshotTick >= quantum) {
-			snapshotCounter++;
-			int qq = snapshotCounter.load();
-
-			std::filesystem::create_directory("memory_snapshot");
-			std::ofstream outFile("memory_snapshot/memory_stamp_" + std::to_string(qq) + ".txt");
-			if (outFile.is_open()) {
-				outFile << memoryAllocator.generateMemoryStamp(LogUtils::getCurrentTimestamp());
-				outFile.close();
-			}
-
-			lastSnapshotTick = cpuTick.load();
-		}
-		//std::this_thread::sleep_for(std::chrono::milliseconds(1)); // avoid busy-spinning
 	}
 }
