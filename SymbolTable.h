@@ -23,18 +23,19 @@ public:
 	}
 
 	*/
-	void setVariable(const std::string& name, uint16_t value) { 
+	bool setVariable(const std::string& name, uint16_t value) { 
 
 		if (table.find(name) != table.end()) { // Check if the variable already exists
 			table[name] = value;
-			return; // Variable already declared
+			return true; // Variable already declared
 
 			}
 
 		else if (table.size() < MAX_VARIABLES) {
 			table[name] = value;
+			return true;
 		}
-			return; // Cannot declare more variables
+			return false; // Cannot declare more variables
 
 	} 
 	

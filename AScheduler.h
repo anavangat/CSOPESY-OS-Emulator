@@ -18,6 +18,8 @@
 #include "SubtractInstruction.h"
 #include "SleepInstruction.h"
 #include "ForInstruction.h"
+#include "ReadInstruction.h"
+#include "WriteInstruction.h"
 #include "MemoryAllocator.h"
 
 class AScheduler
@@ -140,7 +142,7 @@ public:
 		std::vector<std::string> variables;
 		while (process->getTotalInstructions() < instructionCount) {
 			int remaining = instructionCount - process->getTotalInstructions();
-			process->addInstruction(createRandomInstruction(newPid, name, variables, remaining));
+			process->addInstruction(createRandomInstruction(newPid, name, variables, remaining, memPerProc));
 		}
 
 		std::lock_guard<std::mutex> lock(allProcessesMutex);
@@ -415,7 +417,7 @@ protected:
 			//process->addInstruction(std::make_shared<PrintInstruction>(pid, text));
 
 			int remainingInstructions = instructionCount - process->getTotalInstructions();
-			auto instruction = createRandomInstruction(pid, paddedName, variables, remainingInstructions);
+			auto instruction = createRandomInstruction(pid, paddedName, variables, remainingInstructions, memPerProc);
 			process->addInstruction(instruction);
 		}
 
@@ -423,8 +425,8 @@ protected:
 	}
 
 
-	std::shared_ptr<Instruction> createRandomInstruction(int pid, const std::string& paddedName, std::vector<std::string>& variables, int remainingInstructions, int depth = 0) {
-		int instructionTypeCount = (depth < maxForDepth) ? 6 : 5; // if depth < maxForDepth, allow FOR instruction, else only allow PRINT, SLEEP, ADD, SUBTRACT, DECLARE
+	std::shared_ptr<Instruction> createRandomInstruction(int pid, const std::string& paddedName, std::vector<std::string>& variables, int remainingInstructions, int memoryRequired, int depth = 0) {
+		int instructionTypeCount = (depth < maxForDepth) ? 8 : 7; // if depth < maxForDepth, allow FOR instruction, else only allow PRINT, SLEEP, ADD, SUBTRACT, DECLARE
 		int instructionType = rand() % instructionTypeCount; // random instruction type (0-5) - PRINT, SLEEP, ADD, SUBTRACT, FOR, DECLARE
 
 		switch (instructionType) {
@@ -508,7 +510,7 @@ protected:
 					int childBudget = remainingInstructions - bodyFlattenedSize;
 					if (childBudget < 1) break; // cant have more instructions
 
-					auto child = createRandomInstruction(pid, paddedName, variables, childBudget, depth + 1);
+					auto child = createRandomInstruction(pid, paddedName, variables, childBudget, memoryRequired, depth + 1);
 					body.push_back(child);
 					bodyFlattenedSize += ForInstruction::flattenedSize(child);
 				}
@@ -522,6 +524,43 @@ protected:
 				break;
 
 			}
+
+			case Instruction::READ:
+			{
+			
+				if (memoryRequired <= 0) // if no memory is allocated, we cannot read from it
+					break;
+
+				int address = rand() % memoryRequired; // random address within the allocated memory range
+
+				std::string dest;
+				if (!variables.empty() && rand() % 2 == 0) { // 50% chance to read into an existing variable
+					dest = variables[rand() % variables.size()];
+				}
+				else {
+					dest = "var" + std::to_string(variables.size()); // create a new variable name sequentially
+					variables.push_back(dest);
+				}
+
+				return std::make_shared<ReadInstruction>(pid, dest, address);
+				break;
+
+			}
+
+			case Instruction::WRITE:
+			{
+				if (memoryRequired <= 0)
+					break;
+
+				int address = rand() % memoryRequired; // random address within the allocated memory range
+				uint16_t value = rand() % 100; // random value between 0 and 99
+
+				return std::make_shared<WriteInstruction>(pid, address, value);
+				break;
+			}
+
+
+
 
 		}
 

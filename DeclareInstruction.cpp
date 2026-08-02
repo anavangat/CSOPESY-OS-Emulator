@@ -7,11 +7,14 @@ DeclareInstruction::DeclareInstruction(int pid, const std::string& variableName,
 }
 
 void DeclareInstruction::execute(Process& process, SymbolTable& symbolTable) {
+	
 	if (!symbolTable.hasVariable(variableName)) {
-		symbolTable.setVariable(variableName, initialValue);
-	}
-	else {
-		//throw std::runtime_error("Variable '" + variableName + "' already declared."); //throw error if declared a variable that already exists
+		bool declared = symbolTable.setVariable(variableName, initialValue);
+		if (!declared) {
+			std::string errorLine = "DECLARE failed: symbol table full, could not declare '" + variableName + "'";
+			process.appendOutput(errorLine);
+			return; // skip the success log below
+		}
 	}
 
 	std::string logLine = "Assignment: " + variableName + "=" + std::to_string(initialValue);

@@ -3,6 +3,8 @@
 #include <set>
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
+#include <cstdio>
 
 MemoryAllocator::MemoryAllocator(int maxOverallMem, int memPerFrame)
     : maxOverallMem(maxOverallMem), memPerFrame(memPerFrame), totalFrames (maxOverallMem / memPerFrame), accessCounter(0)
@@ -17,16 +19,126 @@ MemoryAllocator::MemoryAllocator(int maxOverallMem, int memPerFrame)
 
     for (int i = 0; i < totalFrames; i++)
 		freeFrames.push(i); // Initialize the freeFrames list with all frame numbers (0 to totalFrames - 1)
+
+	std::ofstream freshFile(backingStoreFileName, std::ios::binary |  std::ios::trunc); // Create a new empty backing store file (truncate if it already exists)
+	freshFile.close(); // Close the file after creating it
+
+    
 }
 
+static const int PID_FIELD_WIDTH = 6; // supports PIDs up to 999999 before the field overflows
+static const int PAGE_FIELD_WIDTH = 4; // supports page numbers up to 9999 before overflowing
+static const int CHARS_PER_BYTE = 4; // each byte -> "NNN " (3 digits + 1 space)
+
+
+int MemoryAllocator::recordLineWidth() const {  
+    return 4 + PID_FIELD_WIDTH + 1      // "PID:" + digits + space
+        + 5 + PAGE_FIELD_WIDTH + 1       // "PAGE:" + digits + space
+        + 5 + (memPerFrame * CHARS_PER_BYTE) // "DATA:" + byte values
+        + 1;                              // trailing newline
+}
+
+
+void MemoryAllocator::writePageToFile(int recordNumber, int recordPid, int pageNumber, const std::vector<uint8_t>& data) {
+
+    if (recordNumber < 0)
+        return; // Invalid record number, do nothing
+
+    std::fstream file(backingStoreFileName, std::ios::binary | std::ios::in | std::ios::out);
+
+    if (!file.is_open()) {
+
+		std::ofstream createFile(backingStoreFileName, std::ios::binary); // Create the file if it doesn't exist
+        createFile.close();
+
+		file.open(backingStoreFileName, std::ios::binary | std::ios::in | std::ios::out); // Reopen the file after creating it
+
+		if (!file.is_open()) {
+			return; // Handle error: unable to open or create the backing store file
+		}
+
+
+        
+    }
+
+    std::vector<uint8_t> source(data); // Copy so we can safely pad without mutating the caller's buffer
+    if (static_cast<int>(source.size()) < memPerFrame)
+        source.resize(memPerFrame, 0); // defensive pad, same intent as the old binary version
+
+    // Build the human-readable line, e.g.: "PID:     1 PAGE:   0 DATA:007 042 255 ...\n"
+    std::ostringstream line;
+    line << "PID:" << std::setw(PID_FIELD_WIDTH) << recordPid
+        << " PAGE:" << std::setw(PAGE_FIELD_WIDTH) << pageNumber
+        << " DATA:";
+
+    char byteBuf[8];
+    for (int i = 0; i < memPerFrame; i++) {
+        std::snprintf(byteBuf, sizeof(byteBuf), "%03d ", source[i]); // e.g. 255 -> "255 ", 7 -> "007 "
+        line << byteBuf;
+    }
+
+    std::string lineStr = line.str();
+    int lineWidth = recordLineWidth();
+
+    // Pad or (defensively) truncate so every line is exactly lineWidth characters —
+    // this fixed width is what makes recordNumber * lineWidth a reliable seek offset.
+    if (static_cast<int>(lineStr.size()) < lineWidth - 1)
+        lineStr.append(lineWidth - 1 - lineStr.size(), ' ');
+    lineStr += "\n";
+    if (static_cast<int>(lineStr.size()) > lineWidth)
+        lineStr.resize(lineWidth); // PID/page overflowed its field width; truncate rather than corrupt the layout
+
+    std::streamoff offset = static_cast<std::streamoff>(recordNumber) * lineWidth; // Calculate the byte offset in the file for the given record number
+    file.seekp(offset); // Move the write pointer to the calculated offset
+
+    file.write(lineStr.data(), lineWidth); // Write the fixed-width text line to the file
+
+    file.close(); // Close the file after writing
+
+}
+
+bool MemoryAllocator::readPageFromFile(int recordNumber, std::vector<uint8_t>& data) {
+
+	data.assign(memPerFrame, 0); // Initialize the data vector with memPerFrame bytes, all set to 0
+
+	if (recordNumber < 0)
+		return false; // Invalid record number, return false)
+
+	std::ifstream file(backingStoreFileName, std::ios::binary); // Open the backing store file in binary mode for reading
+	if (!file.is_open()) {
+		return false; // Handle error: unable to open the backing store file
+	}
+
+    int lineWidth = recordLineWidth();
+    std::streamoff offset = static_cast<std::streamoff>(recordNumber) * lineWidth; // Calculate the byte offset in the file for the given record number
+
+    std::vector<char> raw(lineWidth, '0'); // default '0' so an unwritten record decodes to all-zero bytes
+    file.seekg(offset); // Move the read pointer to the calculated offset
+    file.read(raw.data(), lineWidth); // Read the fixed-width text line from the file
+    // A short/failed read (record's offset is past current EOF) just leaves the tail as '0' chars.
+
+    file.close(); // Close the file after reading
+
+    std::string lineStr(raw.begin(), raw.end());
+    size_t dataPos = lineStr.find("DATA:");
+    if (dataPos == std::string::npos)
+        return true; // nothing written at this offset yet; data stays zero-filled from the assign() above
+
+    size_t cursor = dataPos + 5; // skip past the "DATA:" label itself
+    for (int i = 0; i < memPerFrame; i++) {
+        if (cursor + 3 > lineStr.size())
+            break;
+        char digits[4] = { lineStr[cursor], lineStr[cursor + 1], lineStr[cursor + 2], '\0' };
+        data[i] = static_cast<uint8_t>(std::atoi(digits)); // decode "NNN" back into one byte
+        cursor += 4; // 3 digits + 1 separating space
+    }
+
+    return true;
+
+}
 bool MemoryAllocator::allocate(int pid, int memoryRequired) {
 
 	std::lock_guard<std::mutex> lock(allocatorMutex); // Lock the mutex to ensure thread safety during allocation
-
-    std::ofstream file("csopesy-backing-store.txt"); // Open the backing store file for writing
-
-	if (!file.is_open()) // Check if the file was opened successfully
-        return false;
 
 	if (pageTables.count(pid) > 0){ // Check if the process is already allocated
 		return false; // Process is already allocated, return false
@@ -78,26 +190,11 @@ bool MemoryAllocator::allocate(int pid, int memoryRequired) {
         pageTables[pid][page].frameNumber = -1;
 		pageTables[pid][page].backingStoreRecordNumber = recordNumber; // Update the page table entry with the backing store record number
 
+    
+		writePageToFile(recordNumber, pid, page, backingStore[recordNumber].data); // Write the page data to the backing store file)
     }
 
-
-    for (const auto& record : backingStore) // Write each backing store record to the file
-    {
-		if (!record.inUse) // If the record is not in use, skip it
-            continue;
-
-		file << "Record: " << record.recordNumber // Write the record number
-			<< ", PID: " << record.pid // Write the process ID
-			<< ", Page: " << record.pageNumber // Write the page number
-            << "\n";
-
-		for (uint8_t byte : record.data) // Write the page data as hexadecimal values
-            file << static_cast<int>(byte) << ' ';
-
-        file << "\n\n";
-    }
-
-	file.close(); // Close the backing store file
+   
 
 	return true; // Allocation successful
 
@@ -106,11 +203,6 @@ bool MemoryAllocator::allocate(int pid, int memoryRequired) {
 
 void MemoryAllocator::deallocate(int pid) {
     std::lock_guard<std::mutex> lock(allocatorMutex);
-
-    std::ofstream file("csopesy-backing-store.txt"); // Open the backing store file for writing
-
-    if (!file.is_open()) // Check if the file was opened successfully
-        return;
 
     for (auto& record : backingStore) // Iterate through the backing store record
     {
@@ -121,6 +213,7 @@ void MemoryAllocator::deallocate(int pid) {
 			record.pageNumber = -1; // Reset the page number
 			//record.data.clear(); // Clear the data associated with the record
             record.data.assign(memPerFrame, 0);
+			writePageToFile(record.recordNumber, -1, -1, record.data); // Write the cleared data to the backing store file)
 		}
     }
 
@@ -138,24 +231,6 @@ void MemoryAllocator::deallocate(int pid) {
 	pageTables.erase(pid); // Remove the page table for the process
 
 	backingStoreIndex.erase(pid); // Remove the backing store index entries for the process)
-
-    for (const auto& record : backingStore) // Write each backing store record to the file
-    {
-        if (!record.inUse) // If the record is not in use, skip it
-            continue;
-
-        file << "Record: " << record.recordNumber // Write the record number
-            << ", PID: " << record.pid // Write the process ID
-            << ", Page: " << record.pageNumber // Write the page number
-            << "\n";
-
-        for (uint8_t byte : record.data) // Write the page data as hexadecimal values
-            file << static_cast<int>(byte) << ' ';
-
-        file << "\n\n";
-    }
-
-    file.close(); // Close the backing store file
 
 }
 
@@ -297,8 +372,10 @@ int MemoryAllocator::pageIn(int pid, int pageNumber)
 	if (!record.inUse) // If the backing store record is not in use
 		return -1; // Return -1 indicating failure
 
-	if (static_cast<int>(record.data.size()) < memPerFrame) // Check if the backing store record data size is less than the expected memory per frame
-		record.data.assign(memPerFrame, 0); // Resize the data to match the expected size
+    std::vector<uint8_t> diskData;
+	readPageFromFile(recordNumber, diskData); // Read the page data from the backing store file
+	record.data = diskData; // Store the read data in the backing store record
+
 
 	int start = frameNumber * memPerFrame; // Calculate the starting index in physical memory for the frame
 
@@ -365,6 +442,9 @@ void MemoryAllocator::pageOut(int frameNumber)
                     physicalMemory.begin() + start + memPerFrame,
                     record.data.begin()
                 );
+                
+				writePageToFile(recordNumber, pid, pageNumber, record.data); // Write the page data to the backing store file
+            
             }
         }
 

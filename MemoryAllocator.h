@@ -102,4 +102,12 @@ class MemoryAllocator {
 		void pageOut(int frameNumber); // Page out the page in the specified frame to the backing store
 
         int translateAddress(int pid, int virtualAddress);
+
+		const std::string backingStoreFileName = "csopesy-backing-store.txt"; // Name of the backing store file
+
+		void writePageToFile(int recordNumber, int recordPid, int pageNumber, const std::vector<uint8_t>& data); // Writes the page data to the backing store file at the specified record number
+
+		bool readPageFromFile(int recordNumber, std::vector<uint8_t>& data); // Reads the page data from the backing store file at the specified record number
+
+		int recordLineWidth() const; // Returns the number of bytes per line in the backing store file
 };
