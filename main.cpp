@@ -272,12 +272,19 @@ void handleVmStat(AScheduler* scheduler, int currentTick) {
     int pagedIn = allocator.getNumPagedIn();
     int pagedOut = allocator.getNumPagedOut();
 
+    // CPU tick statistics from AScheduler
+    int activeTicks = scheduler->getActiveCpuTicks();
+    int idleTicks = scheduler->getIdleCpuTicks();
+    int totalTicks = scheduler->getTotalCpuTicks();
+
     std::cout << std::setw(12) << totalMem << " K total memory" << std::endl;
     std::cout << std::setw(12) << usedMem << " K used memory" << std::endl;
     std::cout << std::setw(12) << usedMem << " K active memory" << std::endl;
     std::cout << std::setw(12) << freeMem << " K inactive memory" << std::endl;
     std::cout << std::setw(12) << freeMem << " K free memory" << std::endl;
-    std::cout << std::setw(12) << currentTick << " total cpu ticks" << std::endl;
+    std::cout << std::setw(12) << totalTicks << " total cpu ticks" << std::endl;
+    std::cout << std::setw(12) << activeTicks << " active cpu ticks" << std::endl;
+    std::cout << std::setw(12) << idleTicks << " idle cpu ticks" << std::endl;
     std::cout << std::setw(12) << pagedIn << " pages paged in" << std::endl;
     std::cout << std::setw(12) << pagedOut << " pages paged out" << std::endl;
 }
