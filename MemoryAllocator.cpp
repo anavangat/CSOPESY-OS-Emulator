@@ -268,33 +268,49 @@ bool MemoryAllocator::read(int pid, int virtualAddress, uint16_t& value)
 {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
-    int physicalAddress = translateAddress(pid, virtualAddress);
-
-    if (physicalAddress == -1)
+    int lowAddress = translateAddress(pid, virtualAddress);
+    if (lowAddress == -1)
         return false;
+    uint8_t lowByte = physicalMemory[lowAddress];   // consume before the next fault
 
-    value = physicalMemory[physicalAddress];
+    int highAddress = translateAddress(pid, virtualAddress + 1);
+    if (highAddress == -1)
+        return false;
+    uint8_t highByte = physicalMemory[highAddress];
 
+    value = static_cast<uint16_t>(lowByte) | (static_cast<uint16_t>(highByte) << 8);
     return true;
+}
+
+void MemoryAllocator::markPageDirty(int pid, int pageNumber)
+{
+    auto ptIt = pageTables.find(pid);
+    if (ptIt == pageTables.end())
+        return;
+    if (pageNumber < 0 || pageNumber >= static_cast<int>(ptIt->second.size()))
+        return;
+
+    PageEntry& entry = ptIt->second[pageNumber];
+    entry.dirty = true;
+    if (entry.frameNumber >= 0 && entry.frameNumber < totalFrames)
+        frameTable[entry.frameNumber].lastAccessedTick = ++accessCounter;
 }
 
 bool MemoryAllocator::write(int pid, int virtualAddress, uint16_t value)
 {
     std::lock_guard<std::mutex> lock(allocatorMutex);
 
-    int physicalAddress = translateAddress(pid, virtualAddress);
-
-    if (physicalAddress == -1)
+    int lowAddress = translateAddress(pid, virtualAddress);
+    if (lowAddress == -1)
         return false;
+    physicalMemory[lowAddress] = static_cast<uint8_t>(value & 0xFF);
+    markPageDirty(pid, virtualAddress / memPerFrame);   // MUST precede the next fault
 
-    physicalMemory[physicalAddress] = value;
-
-    int pageNumber = virtualAddress / memPerFrame;
-
-    PageEntry& entry = pageTables[pid][pageNumber];
-    entry.dirty = true;
-
-    frameTable[entry.frameNumber].lastAccessedTick = ++accessCounter;
+    int highAddress = translateAddress(pid, virtualAddress + 1);
+    if (highAddress == -1)
+        return false;
+    physicalMemory[highAddress] = static_cast<uint8_t>((value >> 8) & 0xFF);
+    markPageDirty(pid, (virtualAddress + 1) / memPerFrame);
 
     return true;
 }

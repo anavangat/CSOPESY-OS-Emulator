@@ -285,8 +285,8 @@ void handleVmStat(AScheduler* scheduler, int currentTick) {
 
     std::cout << std::setw(12) << totalMem << " K total memory" << std::endl;
     std::cout << std::setw(12) << usedMem << " K used memory" << std::endl;
-    std::cout << std::setw(12) << usedMem << " K active memory" << std::endl;
-    std::cout << std::setw(12) << freeMem << " K inactive memory" << std::endl;
+    //std::cout << std::setw(12) << usedMem << " K active memory" << std::endl;
+    //std::cout << std::setw(12) << freeMem << " K inactive memory" << std::endl;
     std::cout << std::setw(12) << freeMem << " K free memory" << std::endl;
     std::cout << std::setw(12) << totalTicks << " total cpu ticks" << std::endl;
     std::cout << std::setw(12) << activeTicks << " active cpu ticks" << std::endl;
@@ -485,7 +485,7 @@ int main() {
 		}
 		else if (cmd == "process-smi") {
             handleProcessSmi(scheduler.get());
-            std::cout << "---------------------------------------------\n" << std::endl;
+            std::cout << "\n" << std::endl;
         }
         else if (cmd == "vmstat") {
             handleVmStat(scheduler.get(), cpuTick.load());

@@ -102,6 +102,7 @@ class MemoryAllocator {
 		void pageOut(int frameNumber); // Page out the page in the specified frame to the backing store
 
         int translateAddress(int pid, int virtualAddress);
+		void markPageDirty(int pid, int pageNumber); // Marks the page as dirty in the page table for the specified process and page number
 
 		const std::string backingStoreFileName = "csopesy-backing-store.txt"; // Name of the backing store file
 
