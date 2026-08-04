@@ -72,6 +72,9 @@
     <ClCompile Include="MemoryConfigUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="InstructionParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt" />
@@ -132,6 +135,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MemoryConfigUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InstructionParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

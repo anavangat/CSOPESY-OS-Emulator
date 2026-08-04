@@ -135,7 +135,7 @@ void LogUtils::printScreenList(std::ostream& os, int numCpu,
 
 }
 
-void LogUtils::dump_emulator_log(int numCpu, const  const std::vector<std::pair<std::shared_ptr<Process>, int>>& running,
+void LogUtils::dump_emulator_log(int numCpu, const std::vector<std::pair<std::shared_ptr<Process>, int>>& running,
                                  const std::vector<std::shared_ptr<Process>>& finished) {
     std::ofstream logFile("csopesy-log.txt");
     if (!logFile.is_open()) {

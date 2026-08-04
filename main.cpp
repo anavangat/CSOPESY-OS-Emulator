@@ -13,6 +13,7 @@
 #include <chrono>
 #include "LogUtils.h"
 #include "MemoryConfigUtils.h"
+#include "InstructionParser.h"
 #include "Process.h"
 #include "AScheduler.h"
 #include "FCFS_Scheduler.h"
@@ -37,9 +38,9 @@ struct Config {
 	uint32_t maxIns = 2000;
 	uint32_t delaysPerExec = 0;
 	uint32_t maxOverallMem = 16384;
-	uint32_t memPerFrame = 16;
+	uint32_t memPerFrame = 64;
 	uint32_t minMemPerProc = 64;
-	uint32_t maxMemPerProc = 65536;
+	uint32_t maxMemPerProc = 4096;
 };
 
 // Read and parse config.txt. Returns true if file loaded (even if some values invalid/defaulted).
@@ -96,24 +97,24 @@ Config parseConfig(const std::string& path) {
 			else std::cout << "delays-per-exec out of range. Using: " << cfg.delaysPerExec << std::endl;
 		}
 		else if (key == "max-overall-mem") {
-			uint64_t v=0; ss >> v;
-			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.maxOverallMem = static_cast<uint32_t>(v);
-			else std::cout << "max-overall-mem out of range. Using: " << cfg.maxOverallMem << std::endl;
+			uint64_t v = 0; ss >> v;
+			if (v <= std::numeric_limits<uint32_t>::max() && MemoryConfigUtils::isValidMemoryValue(static_cast<uint32_t>(v))) cfg.maxOverallMem = static_cast<uint32_t>(v);
+			else std::cout << "max-overall-mem invalid (must be a power of two between 64 and 65536). Using: " << cfg.maxOverallMem << std::endl;
 		}
 		else if (key == "mem-per-frame") {
-			uint64_t v=0; ss >> v;
-			if (v >= 1 && v <= std::numeric_limits<uint32_t>::max()) cfg.memPerFrame = static_cast<uint32_t>(v);
-			else std::cout << "mem-per-frame out of range. Using: " << cfg.memPerFrame << std::endl;
+			uint64_t v = 0; ss >> v;
+			if (v <= std::numeric_limits<uint32_t>::max() && MemoryConfigUtils::isValidMemoryValue(static_cast<uint32_t>(v))) cfg.memPerFrame = static_cast<uint32_t>(v);
+			else std::cout << "mem-per-frame invalid (must be a power of two between 64 and 65536). Using: " << cfg.memPerFrame << std::endl;
 		}
 		else if (key == "min-mem-per-proc") {
-			uint64_t v=0; ss >> v;
-			if (MemoryConfigUtils::isValidMemoryValue(v)) cfg.minMemPerProc = static_cast<uint32_t>(v);
-			else std::cout << "min-mem-per-proc invalid (must be power of two between 64 and 65536). Using: " << cfg.minMemPerProc << std::endl;
+			uint64_t v = 0; ss >> v;
+			if (v <= std::numeric_limits<uint32_t>::max() && MemoryConfigUtils::isValidMemoryValue(static_cast<uint32_t>(v))) cfg.minMemPerProc = static_cast<uint32_t>(v);
+			else std::cout << "min-mem-per-proc invalid (must be a power of two between 64 and 65536). Using: " << cfg.minMemPerProc << std::endl;
 		}
 		else if (key == "max-mem-per-proc") {
-			uint64_t v=0; ss >> v;
-			if (MemoryConfigUtils::isValidMemoryValue(v)) cfg.maxMemPerProc = static_cast<uint32_t>(v);
-			else std::cout << "max-mem-per-proc invalid (must be power of two between 64 and 65536). Using: " << cfg.maxMemPerProc << std::endl;
+			uint64_t v = 0; ss >> v;
+			if (v <= std::numeric_limits<uint32_t>::max() && MemoryConfigUtils::isValidMemoryValue(static_cast<uint32_t>(v))) cfg.maxMemPerProc = static_cast<uint32_t>(v);
+			else std::cout << "max-mem-per-proc invalid (must be a power of two between 64 and 65536). Using: " << cfg.maxMemPerProc << std::endl;
 		}
 		// ignore unknown keys
 	}
@@ -150,17 +151,22 @@ Config parseConfig(const std::string& path) {
 		std::swap(cfg.minMemPerProc, cfg.maxMemPerProc);
 	}
 
-	if (cfg.maxMemPerProc > cfg.maxOverallMem) {
-		std::cout << "max-mem-per-proc > max-overall-mem; this would prevent any process from being allocated." << std::endl;
-		memConfigValid = false;
-	}
+	// Under demand paging a process larger than physical memory is legal -- it simply pages
+	// against the backing store. The old "max-mem-per-proc > max-overall-mem" guard was a
+	// Phase 1 flat-allocator relic: it rejected spec-legal configs (all four parameters are
+	// independently allowed the full [2^6, 2^16] range) and, because the built-in defaults
+	// are 16384 / 65536, it also fired on the fallback config it reverts to.
+	//if (cfg.maxMemPerProc > cfg.maxOverallMem) {
+	//	std::cout << "max-mem-per-proc > max-overall-mem; this would prevent any process from being allocated." << std::endl;
+	//	memConfigValid = false;
+	//}
 
 	if (!memConfigValid) {
-		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 16, min-mem-per-proc 64, max-mem-per-proc 65536." << std::endl;
+		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 64, min-mem-per-proc 64, max-mem-per-proc 65536." << std::endl;
 		cfg.maxOverallMem = 16384;
-		cfg.memPerFrame = 16;
+		cfg.memPerFrame = 64;
 		cfg.minMemPerProc = 64;
-		cfg.maxMemPerProc = 65536;
+		cfg.maxMemPerProc = 4096;
 	}
 
 	std::cout << "Loaded configuration:" << std::endl;
@@ -371,12 +377,21 @@ int main() {
 			}
 			else if (arg == "-s") {
 				std::string name = tokens.size() > 2 ? tokens[2] : "";
-				if (name.empty()) {
-					std::cout << "Usage: screen -s <process name>" << std::endl;
+				std::string sizeToken = tokens.size() > 3 ? tokens[3] : "";
+				uint32_t memorySize = 0;
+
+				if (name.empty() || sizeToken.empty()) {
+					std::cout << "Usage: screen -s <process name> <process memory size>" << std::endl;
+					std::cout << "---------------------------------------------\n" << std::endl;
+				}
+				// Spec: [2^6, 2^16] bytes AND an exact power of two, else one fixed message.
+				else if (!InstructionParser::parseUnsignedInteger(sizeToken, memorySize) ||
+					!MemoryConfigUtils::isValidMemoryValue(memorySize)) {
+					std::cout << "invalid memory allocation" << std::endl;
 					std::cout << "---------------------------------------------\n" << std::endl;
 				}
 				else {
-					auto process = scheduler->createUserProcess(name);
+					auto process = scheduler->createUserProcess(name, static_cast<int>(memorySize));
 					if (!process) {
 						std::cout << "Process " << name << " already exists." << std::endl;
 						std::cout << "---------------------------------------------\n" << std::endl;
@@ -387,6 +402,50 @@ int main() {
 					}
 				}
 			}
+			else if (arg == "-c") {
+				std::string name = tokens.size() > 2 ? tokens[2] : "";
+				std::string payload;
+				uint32_t memorySize = 0;
+
+				// The MO2 grammar is: screen -c <name> <mem> "<instructions>", but both worked
+				// examples in the handout omit the size. Token 3 is read as the memory size only
+				// when it is a plain integer; otherwise the size is rolled like scheduler-start.
+				bool hasExplicitSize = tokens.size() > 3 &&
+					InstructionParser::parseUnsignedInteger(tokens[3], memorySize);
+
+				if (name.empty()) {
+					std::cout << "Usage: screen -c <process name> <process memory size> \"<instructions>\"" << std::endl;
+				}
+				else if (hasExplicitSize && !MemoryConfigUtils::isValidMemoryValue(memorySize)) {
+					std::cout << "invalid memory allocation" << std::endl;
+				}
+				else if (!InstructionParser::extractQuotedPayload(command, payload)) {
+					std::cout << "invalid command" << std::endl; // no quoted instruction block
+				}
+				else {
+					std::vector<std::shared_ptr<Instruction>> parsedInstructions;
+					if (!InstructionParser::parseAll(0, payload, parsedInstructions)) {
+						// count outside [1, 50], unknown opcode, bad hex, or a malformed argument
+						std::cout << "invalid command" << std::endl;
+					}
+					else {
+						auto process = scheduler->createUserProcessWithInstructions(
+							name,
+							hasExplicitSize ? static_cast<int>(memorySize) : 0,
+							parsedInstructions);
+
+						if (!process) {
+							std::cout << "Process " << name << " already exists." << std::endl;
+						}
+						else {
+							std::cout << "Process " << name << " created with "
+								<< process->getTotalInstructions() << " instruction(s) and "
+								<< process->getMemoryRequired() << " bytes of memory." << std::endl;
+						}
+					}
+				}
+				std::cout << "---------------------------------------------\n" << std::endl;
+			}
 			else if (arg == "-r") {
 				std::string name = tokens.size() > 2 ? tokens[2] : "";
 				if (name.empty()) {
@@ -395,8 +454,21 @@ int main() {
 				}
 				else {
 					auto process = scheduler->getProcessByName(name);
-					// Spec: a finished process is treated identically to a missing one.
-					if (!process || process->getState() == Process::FINISHED) {
+					if (!process) {
+						std::cout << "Process " << name << " not found." << std::endl;
+						std::cout << "---------------------------------------------\n" << std::endl;
+					}
+					// MO2: report how and when the process died. This MUST be checked before the
+					// FINISHED branch, because AScheduler marks a violated process FINISHED.
+					else if (process->hasMemoryViolation()) {
+						std::cout << "Process " << name
+							<< " shut down due to memory access violation error that occurred at "
+							<< process->getViolationTimestamp() << ". "
+							<< process->getViolationAddress() << " invalid." << std::endl;
+						std::cout << "---------------------------------------------\n" << std::endl;
+					}
+					// Spec: a normally finished process is treated identically to a missing one.
+					else if (process->getState() == Process::FINISHED) {
 						std::cout << "Process " << name << " not found." << std::endl;
 						std::cout << "---------------------------------------------\n" << std::endl;
 					}

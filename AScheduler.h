@@ -133,9 +133,24 @@ public:
 		return idleCpuTicks.load() + activeCpuTicks.load();
 	}
 
-	std::shared_ptr<Process> createUserProcess(const std::string& name) {
+	// screen -s / screen -c: the caller now supplies the memory size. memorySize <= 0 keeps the
+		// old behaviour (roll between min-mem-per-proc and max-mem-per-proc) for internal callers.
+	std::shared_ptr<Process> createUserProcess(const std::string& name, int memorySize = 0) {
+		{
+			// Reject duplicates BEFORE burning a PID and generating a whole instruction stream.
+			std::lock_guard<std::mutex> lock(allProcessesMutex);
+			for (const auto& existing : allProcesses) {
+				if (existing->getName() == name) {
+					return nullptr; // duplicate name; do not register
+				}
+			}
+		}
+
+		int memPerProc = (memorySize > 0)
+			? memorySize
+			: MemoryConfigUtils::rollMemoryPerProcess(minMemPerProc, maxMemPerProc);
+
 		int newPid = pid++;
-		int memPerProc = MemoryConfigUtils::rollMemoryPerProcess(minMemPerProc, maxMemPerProc);
 		auto process = std::make_shared<Process>(newPid, name, std::time(nullptr), memPerProc);
 
 		int instructionCount = rand() % (maxIns - minIns + 1) + minIns;
@@ -148,11 +163,46 @@ public:
 		std::lock_guard<std::mutex> lock(allProcessesMutex);
 		for (const auto& existing : allProcesses) {
 			if (existing->getName() == name) {
-				return nullptr; // duplicate name; do not register
+				return nullptr; // lost a race with a concurrent screen -s; do not register
 			}
 		}
 		allProcesses.push_back(process);
 		return process;
+	}
+
+	// screen -c: same registration path, but the instruction stream comes from the user
+	// (already parsed by InstructionParser) instead of from createRandomInstruction.
+	std::shared_ptr<Process> createUserProcessWithInstructions(const std::string& name, int memorySize,
+		const std::vector<std::shared_ptr<Instruction>>& instructions) {
+
+			{
+				std::lock_guard<std::mutex> lock(allProcessesMutex);
+				for (const auto& existing : allProcesses) {
+					if (existing->getName() == name) {
+						return nullptr; // duplicate name; do not register
+					}
+				}
+			}
+
+			int memPerProc = (memorySize > 0)
+				? memorySize
+				: MemoryConfigUtils::rollMemoryPerProcess(minMemPerProc, maxMemPerProc);
+
+			int newPid = pid++;
+			auto process = std::make_shared<Process>(newPid, name, std::time(nullptr), memPerProc);
+
+			for (const auto& instruction : instructions) {
+				process->addInstruction(instruction); // FOR bodies are flattened here, as usual
+			}
+
+			std::lock_guard<std::mutex> lock(allProcessesMutex);
+			for (const auto& existing : allProcesses) {
+				if (existing->getName() == name) {
+					return nullptr;
+				}
+			}
+			allProcesses.push_back(process);
+			return process;
 	}
 
 	// Add to public section of AScheduler.h:

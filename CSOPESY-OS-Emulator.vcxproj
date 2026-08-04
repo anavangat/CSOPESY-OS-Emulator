@@ -137,6 +137,7 @@
     <ClCompile Include="FCFS_Scheduler.cpp" />
     <ClCompile Include="ForInstruction.cpp" />
     <ClCompile Include="Instruction.cpp" />
+    <ClCompile Include="InstructionParser.cpp" />
     <ClCompile Include="LogEntry.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MemoryAllocator.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="FCFS_Scheduler.h" />
     <ClInclude Include="ForInstruction.h" />
     <ClInclude Include="Instruction.h" />
+    <ClInclude Include="InstructionParser.h" />
     <ClInclude Include="LogEntry.h" />
     <ClInclude Include="MemoryAllocator.h" />
     <ClInclude Include="MemoryConfigUtils.h" />

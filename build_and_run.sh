@@ -26,6 +26,7 @@ clang++ -std=c++17 \
   SymbolTable.cpp \
   MemoryAllocator.cpp \
   MemoryConfigUtils.cpp \
+  InstructionParser.cpp \
   -o emulator
 
 # $? stores the exit status of the compile command (equivalent to %errorlevel%)
