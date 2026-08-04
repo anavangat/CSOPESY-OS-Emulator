@@ -382,6 +382,11 @@ protected:
 			if (!memoryAllocator.isAllocated(process->getPid())) {
 				if (!memoryAllocator.allocate(process->getPid(), process->getMemoryRequired())) {
 					readyQueue.push(process);
+
+					idleCpuTicks += (cpuTick.load() - idleTickStart);
+					idleTickStart = cpuTick.load();
+					std::this_thread::sleep_for(std::chrono::milliseconds(1)); // avoid busy-spinning
+
 					continue; // skip this process and move to the next one
 				}
 			}
@@ -404,7 +409,7 @@ protected:
 		int lastTick = cpuTick.load();
 
 		while (running) {
-			if (generationEnabled && 
+			if (generationEnabled &&
 				cpuTick.load() - lastTick >= batchProcessFreq) {
 				auto process = createProcess(pid++);
 				{
@@ -413,6 +418,7 @@ protected:
 				}
 				lastTick = cpuTick.load();
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // one tick; spinning here burned a core and contended allProcessesMutex against process-smi
 		}
 	}
 

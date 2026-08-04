@@ -23,6 +23,8 @@ MemoryAllocator::MemoryAllocator(int maxOverallMem, int memPerFrame)
 	std::ofstream freshFile(backingStoreFileName, std::ios::binary |  std::ios::trunc); // Create a new empty backing store file (truncate if it already exists)
 	freshFile.close(); // Close the file after creating it
 
+	backingStoreFile.open(backingStoreFileName, std::ios::binary | std::ios::in | std::ios::out); // Hold the handle open; every record access seeks within it instead of reopening
+
     
 }
 
@@ -44,22 +46,20 @@ void MemoryAllocator::writePageToFile(int recordNumber, int recordPid, int pageN
     if (recordNumber < 0)
         return; // Invalid record number, do nothing
 
-    std::fstream file(backingStoreFileName, std::ios::binary | std::ios::in | std::ios::out);
-
-    if (!file.is_open()) {
+    if (!backingStoreFile.is_open()) {
 
 		std::ofstream createFile(backingStoreFileName, std::ios::binary); // Create the file if it doesn't exist
         createFile.close();
 
-		file.open(backingStoreFileName, std::ios::binary | std::ios::in | std::ios::out); // Reopen the file after creating it
+		backingStoreFile.open(backingStoreFileName, std::ios::binary | std::ios::in | std::ios::out); // Reopen the file after creating it
 
-		if (!file.is_open()) {
+		if (!backingStoreFile.is_open()) {
 			return; // Handle error: unable to open or create the backing store file
 		}
-
-
-        
     }
+
+	backingStoreFile.clear(); // A prior short read past EOF leaves failbit set on the shared handle, which would silently discard this write
+	std::fstream& file = backingStoreFile;
 
     std::vector<uint8_t> source(data); // Copy so we can safely pad without mutating the caller's buffer
     if (static_cast<int>(source.size()) < memPerFrame)
@@ -93,7 +93,7 @@ void MemoryAllocator::writePageToFile(int recordNumber, int recordPid, int pageN
 
     file.write(lineStr.data(), lineWidth); // Write the fixed-width text line to the file
 
-    file.close(); // Close the file after writing
+    file.flush(); // Push the record to disk so the file stays inspectable, no need to reopen
 
 }
 
@@ -104,10 +104,12 @@ bool MemoryAllocator::readPageFromFile(int recordNumber, std::vector<uint8_t>& d
 	if (recordNumber < 0)
 		return false; // Invalid record number, return false)
 
-	std::ifstream file(backingStoreFileName, std::ios::binary); // Open the backing store file in binary mode for reading
-	if (!file.is_open()) {
+	if (!backingStoreFile.is_open()) {
 		return false; // Handle error: unable to open the backing store file
 	}
+
+	backingStoreFile.clear(); // Clear any eof/fail bits left by an earlier short read before seeking on the shared handle
+	std::fstream& file = backingStoreFile;
 
     int lineWidth = recordLineWidth();
     std::streamoff offset = static_cast<std::streamoff>(recordNumber) * lineWidth; // Calculate the byte offset in the file for the given record number
@@ -117,7 +119,7 @@ bool MemoryAllocator::readPageFromFile(int recordNumber, std::vector<uint8_t>& d
     file.read(raw.data(), lineWidth); // Read the fixed-width text line from the file
     // A short/failed read (record's offset is past current EOF) just leaves the tail as '0' chars.
 
-    file.close(); // Close the file after reading
+    file.clear(); // Drop the failbit a short read just set, so the next write on this handle isn't silently dropped
 
     std::string lineStr(raw.begin(), raw.end());
     size_t dataPos = lineStr.find("DATA:");
@@ -145,6 +147,10 @@ bool MemoryAllocator::allocate(int pid, int memoryRequired) {
 	}
 
 	int pageCount = (memoryRequired + memPerFrame - 1) / memPerFrame; // Calculate the number of pages needed for the process
+
+	if (pageCount > totalFrames) {
+		return false; // The process needs more pages than physical memory has frames
+	}
 
 	pageTables[pid].resize(pageCount); // Initialize the page table for the process with the required number of pages)
 

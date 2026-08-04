@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <queue>
 #include <cstdint>
+#include <fstream>
 
 class MemoryAllocator {
     public:
@@ -105,6 +106,8 @@ class MemoryAllocator {
 		void markPageDirty(int pid, int pageNumber); // Marks the page as dirty in the page table for the specified process and page number
 
 		const std::string backingStoreFileName = "csopesy-backing-store.txt"; // Name of the backing store file
+
+		mutable std::fstream backingStoreFile; // Kept open for the allocator's lifetime
 
 		void writePageToFile(int recordNumber, int recordPid, int pageNumber, const std::vector<uint8_t>& data); // Writes the page data to the backing store file at the specified record number
 
