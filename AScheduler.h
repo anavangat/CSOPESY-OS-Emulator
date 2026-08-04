@@ -587,7 +587,7 @@ protected:
 				if (memoryRequired <= 0) // if no memory is allocated, we cannot read from it
 					break;
 
-				int address = rand() % memoryRequired; // random address within the allocated memory range
+				int address = (rand() % (memoryRequired / 2)) * 2; // 2-byte aligned: a uint16 occupies address AND address+1, so the last byte can never be a valid start
 
 				std::string dest;
 				if (!variables.empty() && rand() % 2 == 0) { // 50% chance to read into an existing variable
@@ -608,7 +608,7 @@ protected:
 				if (memoryRequired <= 0)
 					break;
 
-				int address = rand() % memoryRequired; // random address within the allocated memory range
+				int address = (rand() % (memoryRequired / 2)) * 2; // 2-byte aligned: a uint16 occupies address AND address+1, so the last byte can never be a valid start
 				uint16_t value = rand() % 100; // random value between 0 and 99
 
 				return std::make_shared<WriteInstruction>(pid, address, value);
