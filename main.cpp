@@ -162,7 +162,7 @@ Config parseConfig(const std::string& path) {
 	//}
 
 	if (!memConfigValid) {
-		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 64, min-mem-per-proc 64, max-mem-per-proc 65536." << std::endl;
+		std::cout << "Reverting memory settings to defaults: max-overall-mem 16384, mem-per-frame 64, min-mem-per-proc 64, max-mem-per-proc 4096." << std::endl;
 		cfg.maxOverallMem = 16384;
 		cfg.memPerFrame = 64;
 		cfg.minMemPerProc = 64;
